@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { requireAdmin } from "@/lib/auth";
 import {
   adminDeleteBet,
@@ -14,7 +14,7 @@ import {
   setMatchResult,
 } from "@/lib/admin";
 import { syncFromInternet } from "@/lib/sync";
-import { refreshStandings } from "@/lib/data";
+import { refreshStandings, MATCHES_TAG } from "@/lib/data";
 
 export type AdminState =
   | { error?: string; ok?: string; password?: string }
@@ -86,6 +86,7 @@ export async function createMatchAction(
       return { error: "Teams und Anstoßzeit sind Pflicht." };
     }
     await createMatch({ homeTeam, awayTeam, stage, kickoff });
+    revalidateTag(MATCHES_TAG);
     revalidatePath("/admin/matches");
     revalidatePath("/matches");
     return { ok: "Spiel angelegt." };
@@ -107,6 +108,7 @@ export async function setResultAction(
       return { error: "Bitte gültiges Ergebnis eingeben." };
     }
     await setMatchResult(matchId, home, away);
+    revalidateTag(MATCHES_TAG);
     revalidatePath("/admin/matches");
     revalidatePath("/leaderboard");
     return { ok: "Ergebnis gespeichert & Punkte aktualisiert." };
@@ -119,6 +121,7 @@ export async function deleteMatchAction(formData: FormData): Promise<void> {
   await requireAdmin();
   const matchId = String(formData.get("matchId") ?? "");
   if (matchId) await deleteMatch(matchId);
+  revalidateTag(MATCHES_TAG);
   revalidatePath("/admin/matches");
 }
 
@@ -157,6 +160,7 @@ export async function syncAction(_prev: AdminState): Promise<AdminState> {
   try {
     await requireAdmin();
     const result = await syncFromInternet();
+    revalidateTag(MATCHES_TAG);
     revalidatePath("/admin/matches");
     revalidatePath("/leaderboard");
     if (result.fetched === 0) {
