@@ -166,7 +166,7 @@ export async function syncAction(_prev: AdminState): Promise<AdminState> {
       };
     }
     return {
-      ok: `Sync ok: ${result.fetched} geladen, ${result.updated} aktualisiert, ${result.created} neu, ${result.finished} beendet.`,
+      ok: `Sync ok: ${result.fetched} geladen, ${result.updated} aktualisiert, ${result.created} neu, ${result.finished} beendet.${result.recomputed ? " Punkte neu berechnet." : " Keine Änderung – Punkte unverändert."}`,
     };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Sync fehlgeschlagen." };
