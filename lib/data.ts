@@ -30,7 +30,10 @@ const loadMatches = unstable_cache(
     }));
   },
   ["matches-all"],
-  { tags: [MATCHES_TAG], revalidate: 300 },
+  // Lange Haltbarkeit: Der Spielplan ändert sich nur per Sync/Admin – und dann
+  // wird der Cache sofort gezielt per revalidateTag(MATCHES_TAG) geleert. Das
+  // Zeitlimit ist nur ein Sicherheitsnetz, kein regelmäßiger Read-Auslöser.
+  { tags: [MATCHES_TAG], revalidate: 3600 },
 );
 
 /** Alle Spiele, nach Anstoß sortiert (aus dem Cache, siehe loadMatches). */
@@ -50,6 +53,14 @@ export function userBetsTag(userId: string): string {
   return `bets-${userId}`;
 }
 
+/**
+ * Cache-Tag für die vorberechnete Rangliste. Startseite und Leaderboard-Polling
+ * (alle 60s) lesen sonst bei JEDEM Aufruf das Standings-Doc. Über diesen Tag
+ * teilen sich alle Aufrufe denselben gecachten Wert (1 Read statt einer pro
+ * Poll/Nutzer); bei echten Änderungen wird der Tag entwertet (revalidateTag).
+ */
+export const STANDINGS_TAG = "standings";
+
 /** Tipps eines Nutzers als Array (aus dem Cache, siehe getUserBets). */
 function loadUserBets(userId: string): Promise<BetDoc[]> {
   return unstable_cache(
@@ -64,7 +75,9 @@ function loadUserBets(userId: string): Promise<BetDoc[]> {
       }));
     },
     ["user-bets", userId],
-    { tags: [BETS_TAG, userBetsTag(userId)], revalidate: 300 },
+    // Wie beim Spielplan: Tipps werden bei jeder Abgabe/Auswertung gezielt per
+    // Tag entwertet, daher reicht ein langes Zeitlimit als Sicherheitsnetz.
+    { tags: [BETS_TAG, userBetsTag(userId)], revalidate: 3600 },
   )();
 }
 
@@ -138,7 +151,10 @@ export async function placeBet(
  * Idempotent – kann nach jedem Sync/Ergebnis-Update aufgerufen werden.
  */
 export async function recomputePoints(): Promise<void> {
-  const [matchesSnap, betsSnap] = await Promise.all([
+  // Users + Matches + Tipps EINMAL laden – daraus berechnen wir sowohl die
+  // neuen Punkte als auch die Rangliste, ohne die DB ein zweites Mal zu lesen.
+  const [usersSnap, matchesSnap, betsSnap] = await Promise.all([
+    db().collection(Collections.users).get(),
     db().collection(Collections.matches).get(),
     db().collection(Collections.bets).get(),
   ]);
@@ -148,10 +164,23 @@ export async function recomputePoints(): Promise<void> {
     matches.set(d.id, { id: d.id, ...(d.data() as Omit<MatchDoc, "id">) }),
   );
 
+  const users = usersSnap.docs.map((d) => ({
+    id: d.id,
+    ...(d.data() as Omit<UserDoc, "id">),
+  }));
+  const groupEMatchIds = new Set(
+    [...matches.values()]
+      .filter((m) => m.stage === GROUP_E_STAGE)
+      .map((m) => m.id),
+  );
+
   const batch = db().batch();
+  // Tipps mit ihren (neu berechneten) Punkten im Speicher behalten, damit wir
+  // die Rangliste direkt daraus bauen können.
+  const bets: BetDoc[] = [];
   betsSnap.docs.forEach((d) => {
-    const bet = d.data() as Omit<BetDoc, "id">;
-    const match = matches.get(bet.matchId);
+    const data = d.data() as Omit<BetDoc, "id">;
+    const match = matches.get(data.matchId);
     let points: number | null = null;
     if (
       match &&
@@ -160,18 +189,25 @@ export async function recomputePoints(): Promise<void> {
       match.awayScore !== null
     ) {
       points = calcPoints(
-        { homeScore: bet.homeScore, awayScore: bet.awayScore },
+        { homeScore: data.homeScore, awayScore: data.awayScore },
         { homeScore: match.homeScore, awayScore: match.awayScore },
       );
     }
-    if (points !== bet.points) {
+    if (points !== data.points) {
       batch.update(d.ref, { points });
     }
+    bets.push({ id: d.id, ...data, points });
   });
   await batch.commit();
 
-  // Rangliste nach jeder Neuauswertung einmal vorberechnen und cachen.
-  await refreshStandings();
+  // Rangliste aus den bereits geladenen, aktualisierten Daten berechnen und
+  // cachen – KEIN zweiter DB-Read (früher: zusätzlicher refreshStandings-Read).
+  const cache: StandingsCache = {
+    group_e: computeStandings("group_e", users, groupEMatchIds, bets),
+    all: computeStandings("all", users, groupEMatchIds, bets),
+    updatedAt: Date.now(),
+  };
+  await db().collection(Collections.standings).doc(STANDINGS_DOC).set(cache);
 }
 
 /** Im Cache-Dokument abgelegte Rangliste für beide Wertungen. */
@@ -265,23 +301,36 @@ export async function refreshStandings(): Promise<void> {
 }
 
 /**
- * Beide Wertungen aus dem Cache (ein Read). Existiert der Cache noch nicht,
- * wird er einmalig live berechnet und geschrieben.
+ * Liest das vorberechnete Standings-Doc – über den Next.js Data Cache gepuffert.
+ * Cache-Treffer kosten 0 Firestore-Reads; der Cache hält bis zur nächsten
+ * Änderung (revalidateTag(STANDINGS_TAG)) bzw. max. 60 Sekunden. So lösen viele
+ * gleichzeitige Leaderboard-Polls zusammen nur ~1 Read/Minute aus.
  */
-async function readStandingsCache(): Promise<StandingsCache> {
-  const snap = await db()
-    .collection(Collections.standings)
-    .doc(STANDINGS_DOC)
-    .get();
-
-  if (snap.exists) {
+const loadStandingsDoc = unstable_cache(
+  async (): Promise<StandingsCache | null> => {
+    const snap = await db()
+      .collection(Collections.standings)
+      .doc(STANDINGS_DOC)
+      .get();
+    if (!snap.exists) return null;
     const cache = snap.data() as StandingsCache;
     return {
       group_e: cache.group_e ?? [],
       all: cache.all ?? [],
       updatedAt: cache.updatedAt ?? 0,
     };
-  }
+  },
+  ["standings-current"],
+  { tags: [STANDINGS_TAG], revalidate: 60 },
+);
+
+/**
+ * Beide Wertungen aus dem Cache. Existiert das Doc noch nicht, wird es einmalig
+ * live berechnet und geschrieben.
+ */
+async function readStandingsCache(): Promise<StandingsCache> {
+  const cached = await loadStandingsDoc();
+  if (cached) return cached;
 
   // Fallback: noch nie berechnet -> einmal berechnen, cachen und ausliefern.
   const cache = await computeAllStandings();

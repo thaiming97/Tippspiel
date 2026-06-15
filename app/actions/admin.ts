@@ -14,7 +14,13 @@ import {
   setMatchResult,
 } from "@/lib/admin";
 import { syncFromInternet } from "@/lib/sync";
-import { refreshStandings, MATCHES_TAG, BETS_TAG, userBetsTag } from "@/lib/data";
+import {
+  refreshStandings,
+  MATCHES_TAG,
+  BETS_TAG,
+  STANDINGS_TAG,
+  userBetsTag,
+} from "@/lib/data";
 
 export type AdminState =
   | { error?: string; ok?: string; password?: string }
@@ -36,6 +42,7 @@ export async function createUserAction(
 
     await createUser({ email, name, startPassword, role, scope });
     await refreshStandings();
+    revalidateTag(STANDINGS_TAG);
     revalidatePath("/admin/users");
     return {
       ok: `Benutzer „${name}" angelegt.`,
@@ -68,6 +75,7 @@ export async function deleteUserAction(formData: FormData): Promise<void> {
   if (userId) {
     await deleteUser(userId);
     await refreshStandings();
+    revalidateTag(STANDINGS_TAG);
   }
   revalidatePath("/admin/users");
 }
@@ -108,9 +116,11 @@ export async function setResultAction(
       return { error: "Bitte gültiges Ergebnis eingeben." };
     }
     await setMatchResult(matchId, home, away);
-    // Ergebnis -> Punkte aller Tipps neu berechnet: Match- und Tipp-Cache leeren.
+    // Ergebnis -> Punkte + Rangliste neu berechnet: Match-, Tipp- und
+    // Ranglisten-Cache leeren.
     revalidateTag(MATCHES_TAG);
     revalidateTag(BETS_TAG);
+    revalidateTag(STANDINGS_TAG);
     revalidatePath("/admin/matches");
     revalidatePath("/leaderboard");
     return { ok: "Ergebnis gespeichert & Punkte aktualisiert." };
@@ -142,6 +152,7 @@ export async function adminSetTipAction(
     }
     await adminSetBet(userId, matchId, home, away);
     revalidateTag(userBetsTag(userId));
+    revalidateTag(STANDINGS_TAG);
     revalidatePath("/admin/tips");
     revalidatePath("/leaderboard");
     return { ok: "Tipp gespeichert." };
@@ -157,6 +168,7 @@ export async function adminDeleteTipAction(formData: FormData): Promise<void> {
   if (userId && matchId) {
     await adminDeleteBet(userId, matchId);
     revalidateTag(userBetsTag(userId));
+    revalidateTag(STANDINGS_TAG);
   }
   revalidatePath("/admin/tips");
   revalidatePath("/leaderboard");
@@ -167,8 +179,12 @@ export async function syncAction(_prev: AdminState): Promise<AdminState> {
     await requireAdmin();
     const result = await syncFromInternet();
     revalidateTag(MATCHES_TAG);
-    // Nur wenn sich Ergebnisse geändert haben, wurden Punkte neu berechnet.
-    if (result.recomputed) revalidateTag(BETS_TAG);
+    // Nur wenn sich Ergebnisse geändert haben, wurden Punkte + Rangliste neu
+    // berechnet.
+    if (result.recomputed) {
+      revalidateTag(BETS_TAG);
+      revalidateTag(STANDINGS_TAG);
+    }
     revalidatePath("/admin/matches");
     revalidatePath("/leaderboard");
     if (result.fetched === 0) {
