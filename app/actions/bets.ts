@@ -1,8 +1,8 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { getCurrentUser } from "@/lib/auth";
-import { placeBet } from "@/lib/data";
+import { placeBet, userBetsTag } from "@/lib/data";
 
 export type BetState = { error?: string; ok?: string } | undefined;
 
@@ -28,6 +28,7 @@ export async function placeBetAction(
     return { error: e instanceof Error ? e.message : "Tipp fehlgeschlagen." };
   }
 
+  revalidateTag(userBetsTag(user.id));
   revalidatePath("/matches");
   revalidatePath("/");
   return { ok: "Gespeichert" };
