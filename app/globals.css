@@ -3,117 +3,83 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
-  @apply font-sans text-gray-900 antialiased;
+  @apply font-sans text-ink antialiased;
   min-height: 100vh;
-  color: #e7f3ec;
-  background-color: #06140d;
-  /* Stadion bei Nacht: zwei Flutlicht-Kegel + zarte Spielfeld-Diagonalen + Tiefe. */
+  background-color: #f5f4ee;
+  /* Helles „Papier" mit zwei zarten Farb-Halos – Energie ohne Unruhe. */
   background-image:
-    radial-gradient(1100px 620px at 88% -12%, rgba(244, 180, 0, 0.18), transparent 60%),
-    radial-gradient(900px 560px at -8% 8%, rgba(52, 210, 123, 0.16), transparent 58%),
-    radial-gradient(800px 800px at 50% 120%, rgba(18, 145, 79, 0.16), transparent 60%),
-    repeating-linear-gradient(
-      115deg,
-      rgba(255, 255, 255, 0.022) 0px,
-      rgba(255, 255, 255, 0.022) 1px,
-      transparent 1px,
-      transparent 26px
-    ),
-    linear-gradient(180deg, #071b10 0%, #06140d 45%, #04100a 100%);
+    radial-gradient(820px 460px at 100% -6%, rgba(184, 242, 61, 0.22), transparent 60%),
+    radial-gradient(760px 520px at -6% 4%, rgba(10, 125, 79, 0.1), transparent 55%);
   background-attachment: fixed;
 }
 
-/* Feiner Korn-Overlay für Stadion-Textur. */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  opacity: 0.05;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-
-main {
-  position: relative;
-  z-index: 1;
-}
-
 @layer base {
-  /* Display-Schrift (Anton) für große Überschriften – Trikot-/Matchday-Look. */
+  h1,
+  h2 {
+    @apply font-display;
+  }
   h1 {
-    @apply font-display tracking-wide;
+    @apply tracking-tight;
   }
 }
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center rounded-xl bg-pitch px-4 py-2.5 text-sm font-semibold text-white transition-all duration-200 active:scale-[0.97] disabled:opacity-50;
-    background-image: linear-gradient(135deg, #12914f 0%, #0b6b3a 60%, #074a28 100%);
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.15) inset, 0 8px 22px -10px rgba(18, 145, 79, 0.7);
+    @apply inline-flex items-center justify-center rounded-full bg-pitch px-5 py-2.5 text-sm font-semibold text-white shadow-card transition-all duration-200 hover:bg-pitch-dark hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] disabled:opacity-50;
   }
-  .btn:hover {
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.2) inset, 0 12px 30px -8px rgba(52, 210, 123, 0.6);
-    transform: translateY(-1px);
+  .btn-lime {
+    @apply inline-flex items-center justify-center rounded-full bg-lime px-5 py-2.5 text-sm font-bold text-ink shadow-glow transition-all duration-200 hover:bg-lime-dark hover:-translate-y-0.5 active:scale-[0.98] disabled:opacity-50;
   }
   .btn-gold {
-    @apply inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-bold text-pitch-dark transition-all duration-200 active:scale-[0.97] disabled:opacity-50;
+    @apply inline-flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-bold text-ink shadow-glow-gold transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] disabled:opacity-50;
     background-image: linear-gradient(135deg, #ffd45e 0%, #f4b400 100%);
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.4) inset, 0 8px 22px -10px rgba(244, 180, 0, 0.7);
-  }
-  .btn-gold:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset, 0 12px 30px -8px rgba(244, 180, 0, 0.6);
   }
   .btn-ghost {
-    @apply inline-flex items-center justify-center rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm font-medium text-white/90 backdrop-blur transition hover:bg-white/10;
+    @apply inline-flex items-center justify-center rounded-full border border-ink/[0.12] bg-white px-4 py-2 text-sm font-medium text-ink transition hover:border-ink/[0.25] hover:bg-ink/[0.03];
   }
   .input {
-    @apply w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 transition focus:border-pitch focus:outline-none focus:ring-2 focus:ring-pitch/30;
+    @apply w-full rounded-xl border border-ink/[0.12] bg-white px-3.5 py-2.5 text-sm text-ink transition placeholder:text-ink/[0.35] focus:border-pitch focus:outline-none focus:ring-4 focus:ring-pitch/[0.12];
   }
-  /* Helle Content-Karte, die über dem dunklen Hintergrund schwebt. */
   .card {
-    @apply rounded-2xl border border-white/60 bg-white/95 p-5 text-gray-900 shadow-float backdrop-blur-sm transition-all duration-300;
+    @apply rounded-3xl border border-ink/[0.06] bg-white p-5 text-ink shadow-card transition-all duration-300;
   }
   .label {
-    @apply mb-1.5 block text-sm font-medium text-gray-600;
+    @apply mb-1.5 block text-sm font-medium text-ink-soft;
   }
   /* Label-Chip, z.B. Spielphase. */
   .chip {
-    @apply inline-flex items-center gap-1 rounded-full bg-pitch/10 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-pitch-dark ring-1 ring-pitch/15;
+    @apply inline-flex items-center gap-1 rounded-full bg-pitch/[0.08] px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-pitch;
   }
-  /* Wortmarke mit Gold-Schimmer. */
-  .wordmark-gold {
-    background-image: linear-gradient(100deg, #ffd45e 0%, #fff4cf 45%, #f4b400 60%, #ffd45e 100%);
-    background-size: 200% auto;
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    @apply animate-shimmer;
+  /* Kleine Überschrift mit Akzent-Balken davor (Matchday-Look). */
+  .eyebrow {
+    @apply flex items-center gap-2.5 text-xs font-bold uppercase tracking-[0.18em] text-ink-soft;
+  }
+  .eyebrow::before {
+    content: "";
+    @apply h-4 w-1 rounded-full bg-lime;
   }
 }
 
-/* Auswahl-Farbe & Scrollbar im Stadion-Stil. */
 ::selection {
-  background: rgba(244, 180, 0, 0.85);
-  color: #06140d;
+  background: rgba(184, 242, 61, 0.7);
+  color: #0c1f17;
 }
 ::-webkit-scrollbar {
   width: 12px;
   height: 12px;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(52, 210, 123, 0.3);
+  background: rgba(10, 125, 79, 0.25);
   border: 3px solid transparent;
   background-clip: content-box;
   border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(52, 210, 123, 0.5);
+  background: rgba(10, 125, 79, 0.45);
   background-clip: content-box;
 }
 

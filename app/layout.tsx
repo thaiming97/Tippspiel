@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
-import { Anton, Hanken_Grotesk } from "next/font/google";
+import { Bricolage_Grotesque, Hanken_Grotesk } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 import { getSession } from "@/lib/auth";
 import { logoutAction } from "./actions/auth";
 import { NavLink } from "@/components/NavLink";
 
-const display = Anton({
-  weight: "400",
+const display = Bricolage_Grotesque({
   subsets: ["latin"],
   variable: "--font-display",
   display: "swap",
@@ -36,32 +35,31 @@ export default async function RootLayout({
     <html lang="de" className={`${display.variable} ${body.variable}`}>
       <body>
         {loggedIn && (
-          <header className="sticky top-0 z-30 border-b border-white/10 bg-night/70 backdrop-blur-xl">
-            {/* Gold-Glühlinie unter dem Header. */}
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-gold/60 to-transparent" />
+          <header className="sticky top-0 z-30 border-b border-ink/[0.07] bg-paper/80 backdrop-blur-xl">
             <div className="mx-auto max-w-4xl px-4">
-              <div className="flex items-center justify-between py-3">
+              <div className="flex items-center justify-between py-3.5">
                 <Link
                   href="/"
-                  className="group flex items-center gap-2.5 text-lg font-bold tracking-tight"
+                  className="group flex items-center gap-2.5 font-display text-lg font-extrabold tracking-tight text-ink"
                 >
-                  <span className="grid h-9 w-9 place-items-center rounded-xl bg-pitch-gradient text-xl shadow-glow-turf ring-1 ring-white/15 transition-transform duration-300 group-hover:scale-105 group-hover:-rotate-6">
+                  <span className="grid h-9 w-9 place-items-center rounded-2xl bg-pitch-gradient text-lg shadow-card ring-1 ring-pitch/20 transition-transform duration-300 group-hover:-rotate-12 group-hover:scale-105">
                     ⚽
                   </span>
-                  <span className="font-display text-xl tracking-wider">
-                    WM-TIPPSPIEL <span className="wordmark-gold">2026</span>
+                  <span>
+                    WM-Tippspiel <span className="text-pitch">2026</span>
                   </span>
                 </Link>
                 <form action={logoutAction} className="flex items-center gap-2.5">
-                  <span className="hidden text-sm text-white/70 sm:inline">
+                  <span className="hidden text-sm font-medium text-ink-soft sm:inline">
                     {session!.name}
                   </span>
-                  <button className="rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-sm font-medium text-white/90 transition hover:bg-white/10">
+                  <button className="rounded-full border border-ink/12 bg-white px-3.5 py-1.5 text-sm font-medium text-ink transition hover:border-ink/25 hover:bg-ink/[0.03]">
                     Abmelden
                   </button>
                 </form>
               </div>
-              <nav className="flex items-center gap-1 overflow-x-auto pb-2.5 text-sm font-semibold">
+              {/* Segment-Navigation – die „Reiter". */}
+              <nav className="flex items-center gap-1 overflow-x-auto rounded-full border border-ink/[0.06] bg-white/70 p-1 text-sm font-semibold shadow-card">
                 <NavLink href="/">Start</NavLink>
                 <NavLink href="/matches">Spiele &amp; Tipps</NavLink>
                 <NavLink href="/leaderboard">Rangliste</NavLink>
