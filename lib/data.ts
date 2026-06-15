@@ -145,6 +145,8 @@ export async function getStandings(scope: Scope): Promise<StandingRow[]> {
   const rows = new Map<string, StandingRow>();
   usersSnap.docs.forEach((d) => {
     const u = d.data() as Omit<UserDoc, "id">;
+    // Admins sind Organisatoren, keine Mitspieler -> nicht werten.
+    if (u.role === "admin") return;
     const userScope = u.scope ?? "group_e";
     // In der Gesamtwertung erscheinen nur „alle"-Tipper.
     if (scope === "all" && userScope !== "all") return;
