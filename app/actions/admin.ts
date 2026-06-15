@@ -161,7 +161,7 @@ export async function syncAction(_prev: AdminState): Promise<AdminState> {
       };
     }
     return {
-      ok: `Sync ok: ${result.fetched} Spiele geladen, ${result.finished} beendet.`,
+      ok: `Sync ok: ${result.fetched} geladen, ${result.updated} aktualisiert, ${result.created} neu, ${result.finished} beendet.`,
     };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Sync fehlgeschlagen." };
