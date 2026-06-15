@@ -40,6 +40,12 @@ export default async function AdminHome() {
             Spiele anlegen, Ergebnisse pflegen, Sync aus dem Internet starten.
           </p>
         </Link>
+        <Link href="/admin/tips" className="card hover:bg-gray-50">
+          <div className="font-semibold">✏️ Tipps bearbeiten</div>
+          <p className="text-sm text-gray-500">
+            Tipps einzelner Spieler nachträglich korrigieren (auch nach Anstoß).
+          </p>
+        </Link>
       </div>
     </div>
   );

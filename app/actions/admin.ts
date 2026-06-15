@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth";
 import {
+  adminDeleteBet,
+  adminSetBet,
   createMatch,
   createUser,
   deleteMatch,
@@ -113,6 +115,37 @@ export async function deleteMatchAction(formData: FormData): Promise<void> {
   const matchId = String(formData.get("matchId") ?? "");
   if (matchId) await deleteMatch(matchId);
   revalidatePath("/admin/matches");
+}
+
+export async function adminSetTipAction(
+  _prev: AdminState,
+  formData: FormData,
+): Promise<AdminState> {
+  try {
+    await requireAdmin();
+    const userId = String(formData.get("userId") ?? "");
+    const matchId = String(formData.get("matchId") ?? "");
+    const home = Number(formData.get("homeScore"));
+    const away = Number(formData.get("awayScore"));
+    if (!userId || !matchId || Number.isNaN(home) || Number.isNaN(away)) {
+      return { error: "Bitte gültigen Tipp eingeben." };
+    }
+    await adminSetBet(userId, matchId, home, away);
+    revalidatePath("/admin/tips");
+    revalidatePath("/leaderboard");
+    return { ok: "Tipp gespeichert." };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Fehlgeschlagen." };
+  }
+}
+
+export async function adminDeleteTipAction(formData: FormData): Promise<void> {
+  await requireAdmin();
+  const userId = String(formData.get("userId") ?? "");
+  const matchId = String(formData.get("matchId") ?? "");
+  if (userId && matchId) await adminDeleteBet(userId, matchId);
+  revalidatePath("/admin/tips");
+  revalidatePath("/leaderboard");
 }
 
 export async function syncAction(_prev: AdminState): Promise<AdminState> {

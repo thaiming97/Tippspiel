@@ -27,6 +27,22 @@ export async function getUserBets(userId: string): Promise<Map<string, BetDoc>> 
   return map;
 }
 
+/** Alle Tipps zu einem Spiel als Map userId -> Tipp (für den Admin). */
+export async function getBetsForMatch(
+  matchId: string,
+): Promise<Map<string, BetDoc>> {
+  const snap = await db()
+    .collection(Collections.bets)
+    .where("matchId", "==", matchId)
+    .get();
+  const map = new Map<string, BetDoc>();
+  snap.docs.forEach((d) => {
+    const bet = { id: d.id, ...(d.data() as Omit<BetDoc, "id">) };
+    map.set(bet.userId, bet);
+  });
+  return map;
+}
+
 export function isBettable(match: MatchDoc): boolean {
   return new Date(match.kickoff).getTime() > Date.now();
 }

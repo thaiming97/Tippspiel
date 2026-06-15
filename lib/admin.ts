@@ -111,3 +111,43 @@ export async function setMatchResult(
 export async function deleteMatch(matchId: string): Promise<void> {
   await db().collection(Collections.matches).doc(matchId).delete();
 }
+
+/**
+ * Setzt/ändert den Tipp eines Spielers – auch nach Anstoß (Admin-Korrektur).
+ * Punkte werden anschließend neu berechnet.
+ */
+export async function adminSetBet(
+  userId: string,
+  matchId: string,
+  homeScore: number,
+  awayScore: number,
+): Promise<void> {
+  if (!Number.isInteger(homeScore) || !Number.isInteger(awayScore)) {
+    throw new Error("Ungültiges Ergebnis");
+  }
+  if (homeScore < 0 || awayScore < 0 || homeScore > 99 || awayScore > 99) {
+    throw new Error("Ungültiges Ergebnis");
+  }
+  const betId = `${userId}_${matchId}`;
+  await db().collection(Collections.bets).doc(betId).set(
+    {
+      userId,
+      matchId,
+      homeScore,
+      awayScore,
+      points: null,
+      updatedAt: Date.now(),
+    },
+    { merge: true },
+  );
+  await recomputePoints();
+}
+
+/** Entfernt den Tipp eines Spielers zu einem Spiel. */
+export async function adminDeleteBet(
+  userId: string,
+  matchId: string,
+): Promise<void> {
+  await db().collection(Collections.bets).doc(`${userId}_${matchId}`).delete();
+  await recomputePoints();
+}
