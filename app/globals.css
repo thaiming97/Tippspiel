@@ -7,7 +7,20 @@
 }
 
 body {
-  @apply bg-gray-100 text-gray-900 antialiased;
+  @apply text-gray-900 antialiased;
+  min-height: 100vh;
+  background-color: #f3f4f6;
+  background-image:
+    radial-gradient(900px 520px at 100% -8%, rgba(18, 145, 79, 0.16), transparent 60%),
+    radial-gradient(760px 460px at -10% 108%, rgba(244, 180, 0, 0.12), transparent 55%),
+    repeating-linear-gradient(
+      135deg,
+      rgba(11, 107, 58, 0.035) 0px,
+      rgba(11, 107, 58, 0.035) 2px,
+      transparent 2px,
+      transparent 22px
+    );
+  background-attachment: fixed;
 }
 
 @layer components {
