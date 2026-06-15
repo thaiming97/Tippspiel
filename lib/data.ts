@@ -1,5 +1,5 @@
 import "server-only";
-import { db, Collections } from "./firebaseAdmin";
+import { db, Collections, STANDINGS_DOC } from "./firebaseAdmin";
 import { calcPoints } from "./points";
 import { GROUP_E_STAGE } from "./types";
 import type { BetDoc, MatchDoc, Scope, StandingRow, UserDoc } from "./types";
@@ -120,41 +120,42 @@ export async function recomputePoints(): Promise<void> {
     }
   });
   await batch.commit();
+
+  // Rangliste nach jeder Neuauswertung einmal vorberechnen und cachen.
+  await refreshStandings();
+}
+
+/** Im Cache-Dokument abgelegte Rangliste für beide Wertungen. */
+interface StandingsCache {
+  group_e: StandingRow[];
+  all: StandingRow[];
+  updatedAt: number;
 }
 
 /**
- * Aktuelle Rangliste (live), absteigend nach Punkten.
+ * Berechnet eine Rangliste aus bereits geladenen Daten (kein DB-Zugriff).
  *
  *  - scope "group_e": nur Punkte aus Gruppe-E-Spielen, alle Teilnehmer.
  *  - scope "all":     Punkte aus allen Spielen, nur Teilnehmer mit
  *                     Tipp-Umfang "alle" (die anderen tippen nur Gruppe E).
  */
-export async function getStandings(scope: Scope): Promise<StandingRow[]> {
-  const [usersSnap, matchesSnap, betsSnap] = await Promise.all([
-    db().collection(Collections.users).get(),
-    db().collection(Collections.matches).get(),
-    db().collection(Collections.bets).get(),
-  ]);
-
-  const groupEMatchIds = new Set(
-    matchesSnap.docs
-      .filter((d) => (d.data() as MatchDoc).stage === GROUP_E_STAGE)
-      .map((d) => d.id),
-  );
-
+function computeStandings(
+  scope: Scope,
+  users: UserDoc[],
+  groupEMatchIds: Set<string>,
+  bets: BetDoc[],
+): StandingRow[] {
   const rows = new Map<string, StandingRow>();
-  usersSnap.docs.forEach((d) => {
-    const u = d.data() as Omit<UserDoc, "id">;
+  users.forEach((u) => {
     // Admins sind Organisatoren, keine Mitspieler -> nicht werten.
     if (u.role === "admin") return;
     const userScope = u.scope ?? "group_e";
     // In der Gesamtwertung erscheinen nur „alle"-Tipper.
     if (scope === "all" && userScope !== "all") return;
-    rows.set(d.id, { userId: d.id, name: u.name, points: 0, exact: 0, played: 0 });
+    rows.set(u.id, { userId: u.id, name: u.name, points: 0, exact: 0, played: 0 });
   });
 
-  betsSnap.docs.forEach((d) => {
-    const bet = d.data() as Omit<BetDoc, "id">;
+  bets.forEach((bet) => {
     if (bet.points === null) return;
     if (scope === "group_e" && !groupEMatchIds.has(bet.matchId)) return;
     const row = rows.get(bet.userId);
@@ -167,4 +168,74 @@ export async function getStandings(scope: Scope): Promise<StandingRow[]> {
   return [...rows.values()].sort(
     (a, b) => b.points - a.points || b.exact - a.exact || a.name.localeCompare(b.name),
   );
+}
+
+/**
+ * Liest die ganze DB einmal und berechnet beide Wertungen. Teurer Pfad – nur
+ * über refreshStandings (selten, bei Datenänderung) oder als Fallback genutzt.
+ */
+async function computeAllStandings(): Promise<StandingsCache> {
+  const [usersSnap, matchesSnap, betsSnap] = await Promise.all([
+    db().collection(Collections.users).get(),
+    db().collection(Collections.matches).get(),
+    db().collection(Collections.bets).get(),
+  ]);
+
+  const users = usersSnap.docs.map((d) => ({
+    id: d.id,
+    ...(d.data() as Omit<UserDoc, "id">),
+  }));
+  const groupEMatchIds = new Set(
+    matchesSnap.docs
+      .filter((d) => (d.data() as MatchDoc).stage === GROUP_E_STAGE)
+      .map((d) => d.id),
+  );
+  const bets = betsSnap.docs.map((d) => ({
+    id: d.id,
+    ...(d.data() as Omit<BetDoc, "id">),
+  }));
+
+  return {
+    group_e: computeStandings("group_e", users, groupEMatchIds, bets),
+    all: computeStandings("all", users, groupEMatchIds, bets),
+    updatedAt: Date.now(),
+  };
+}
+
+/**
+ * Berechnet beide Ranglisten neu und legt sie als EIN Dokument ab. Aufrufen,
+ * wann immer sich Punkte, Teilnehmer oder Tipp-Umfang ändern (Sync, Ergebnis,
+ * Admin-Korrekturen, User-/Scope-Änderungen).
+ */
+export async function refreshStandings(): Promise<void> {
+  const cache = await computeAllStandings();
+  await db()
+    .collection(Collections.standings)
+    .doc(STANDINGS_DOC)
+    .set(cache);
+}
+
+/**
+ * Aktuelle Rangliste, absteigend nach Punkten. Liest nur das vorberechnete
+ * Cache-Dokument (1 Read statt der ganzen DB). Existiert es noch nicht, wird
+ * es einmalig live berechnet und geschrieben.
+ */
+export async function getStandings(scope: Scope): Promise<StandingRow[]> {
+  const snap = await db()
+    .collection(Collections.standings)
+    .doc(STANDINGS_DOC)
+    .get();
+
+  if (snap.exists) {
+    const cache = snap.data() as StandingsCache;
+    return cache[scope] ?? [];
+  }
+
+  // Fallback: noch nie berechnet -> einmal berechnen, cachen und ausliefern.
+  const cache = await computeAllStandings();
+  await db()
+    .collection(Collections.standings)
+    .doc(STANDINGS_DOC)
+    .set(cache);
+  return cache[scope] ?? [];
 }

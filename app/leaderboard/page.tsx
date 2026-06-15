@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import type { Scope, StandingRow } from "@/lib/types";
 
-const POLL_MS = 15000;
+const POLL_MS = 60000;
 
 export default function LeaderboardPage() {
   const [scope, setScope] = useState<Scope>("group_e");

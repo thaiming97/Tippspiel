@@ -14,6 +14,7 @@ import {
   setMatchResult,
 } from "@/lib/admin";
 import { syncFromInternet } from "@/lib/sync";
+import { refreshStandings } from "@/lib/data";
 
 export type AdminState =
   | { error?: string; ok?: string; password?: string }
@@ -34,6 +35,7 @@ export async function createUserAction(
     if (!startPassword) startPassword = "Start123";
 
     await createUser({ email, name, startPassword, role, scope });
+    await refreshStandings();
     revalidatePath("/admin/users");
     return {
       ok: `Benutzer „${name}" angelegt.`,
@@ -63,7 +65,10 @@ export async function resetPasswordAction(
 export async function deleteUserAction(formData: FormData): Promise<void> {
   await requireAdmin();
   const userId = String(formData.get("userId") ?? "");
-  if (userId) await deleteUser(userId);
+  if (userId) {
+    await deleteUser(userId);
+    await refreshStandings();
+  }
   revalidatePath("/admin/users");
 }
 
