@@ -14,7 +14,6 @@
 import { config } from "dotenv";
 config({ path: ".env.local" });
 config();
-import { randomBytes } from "crypto";
 import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import bcrypt from "bcryptjs";
@@ -38,9 +37,8 @@ function init() {
   });
 }
 
-function startPassword(): string {
-  return randomBytes(6).toString("base64url");
-}
+// Einheitliches Start-Passwort für alle Teilnehmer (beim ersten Login zu ändern).
+const START_PASSWORD = "Start123";
 
 async function main() {
   init();
@@ -63,7 +61,7 @@ async function main() {
       continue;
     }
 
-    const pw = startPassword();
+    const pw = START_PASSWORD;
     const ref = db.collection("users").doc();
     await ref.set({
       email: p.email,
