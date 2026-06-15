@@ -2,12 +2,17 @@
 
 export type Role = "admin" | "user";
 
+/** Tipp-Umfang: nur Gruppe E (1€-Pool) oder alle Spiele. */
+export type Scope = "group_e" | "all";
+
 export interface UserDoc {
   id: string;
   email: string;
   name: string;
   passwordHash: string;
   role: Role;
+  /** Für welche Spiele der Nutzer tippt/gewertet wird. */
+  scope: Scope;
   /** true, solange der Nutzer sein Startpasswort noch nicht geändert hat. */
   mustChangePassword: boolean;
   createdAt: number;
@@ -48,6 +53,9 @@ export interface BetDoc {
   points: number | null;
   updatedAt: number;
 }
+
+/** Name der Phase, anhand derer Gruppe-E-Spiele erkannt werden. */
+export const GROUP_E_STAGE = "Gruppe E";
 
 export interface StandingRow {
   userId: string;

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { getMatches, getStandings, getUserBets, isBettable } from "@/lib/data";
 import { formatKickoff } from "@/lib/format";
+import { GROUP_E_STAGE } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -9,12 +10,17 @@ export default async function HomePage() {
   const user = await getCurrentUser();
   if (!user) return null;
 
-  const [matches, bets, standings] = await Promise.all([
+  const scope = user.scope ?? "group_e";
+  const [allMatches, bets, standings] = await Promise.all([
     getMatches(),
     getUserBets(user.id),
-    getStandings(),
+    getStandings(scope),
   ]);
 
+  const matches =
+    scope === "group_e"
+      ? allMatches.filter((m) => m.stage === GROUP_E_STAGE)
+      : allMatches;
   const upcoming = matches.filter(isBettable).slice(0, 5);
   const leader = standings[0];
   const me = standings.find((s) => s.userId === user.id);

@@ -1,20 +1,24 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { StandingRow } from "@/lib/types";
+import type { Scope, StandingRow } from "@/lib/types";
 
 const POLL_MS = 15000;
 
 export default function LeaderboardPage() {
+  const [scope, setScope] = useState<Scope>("group_e");
   const [rows, setRows] = useState<StandingRow[]>([]);
   const [updatedAt, setUpdatedAt] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
+    setLoading(true);
     async function load() {
       try {
-        const res = await fetch("/api/leaderboard", { cache: "no-store" });
+        const res = await fetch(`/api/leaderboard?scope=${scope}`, {
+          cache: "no-store",
+        });
         if (!res.ok) return;
         const data = await res.json();
         if (!active) return;
@@ -30,7 +34,7 @@ export default function LeaderboardPage() {
       active = false;
       clearInterval(id);
     };
-  }, []);
+  }, [scope]);
 
   return (
     <div className="space-y-4">
@@ -47,10 +51,33 @@ export default function LeaderboardPage() {
         </span>
       </div>
 
+      <div className="inline-flex rounded-md border border-gray-300 bg-white p-0.5 text-sm">
+        <button
+          onClick={() => setScope("group_e")}
+          className={`rounded px-3 py-1.5 ${
+            scope === "group_e" ? "bg-pitch text-white" : "text-gray-600"
+          }`}
+        >
+          Nur Gruppe E
+        </button>
+        <button
+          onClick={() => setScope("all")}
+          className={`rounded px-3 py-1.5 ${
+            scope === "all" ? "bg-pitch text-white" : "text-gray-600"
+          }`}
+        >
+          Alle Spiele
+        </button>
+      </div>
+
       {loading ? (
         <p className="text-gray-500">Lädt…</p>
       ) : rows.length === 0 ? (
-        <p className="text-gray-500">Noch keine Teilnehmer.</p>
+        <p className="text-gray-500">
+          {scope === "all"
+            ? "Noch keine Teilnehmer im Modus Alle Spiele."
+            : "Noch keine Teilnehmer."}
+        </p>
       ) : (
         <div className="card overflow-hidden p-0">
           <table className="w-full text-sm">

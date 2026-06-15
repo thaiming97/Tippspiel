@@ -26,11 +26,12 @@ export async function createUserAction(
     const email = String(formData.get("email") ?? "");
     const name = String(formData.get("name") ?? "");
     const role = formData.get("role") === "admin" ? "admin" : "user";
+    const scope = formData.get("scope") === "all" ? "all" : "group_e";
     let startPassword = String(formData.get("startPassword") ?? "").trim();
     if (!email || !name) return { error: "Name und E-Mail sind Pflicht." };
     if (!startPassword) startPassword = generateStartPassword();
 
-    await createUser({ email, name, startPassword, role });
+    await createUser({ email, name, startPassword, role, scope });
     revalidatePath("/admin/users");
     return {
       ok: `Benutzer „${name}" angelegt.`,

@@ -3,7 +3,7 @@ import { randomBytes } from "crypto";
 import { db, Collections } from "./firebaseAdmin";
 import { hashPassword } from "./auth";
 import { recomputePoints } from "./data";
-import type { MatchDoc, Role, UserDoc } from "./types";
+import type { MatchDoc, Role, Scope, UserDoc } from "./types";
 
 /** Erzeugt ein gut lesbares Startpasswort. */
 export function generateStartPassword(): string {
@@ -19,6 +19,7 @@ export async function createUser(input: {
   name: string;
   startPassword: string;
   role?: Role;
+  scope?: Scope;
 }): Promise<{ id: string }> {
   const email = input.email.trim().toLowerCase();
   const existing = await db()
@@ -36,6 +37,7 @@ export async function createUser(input: {
     name: input.name.trim(),
     passwordHash: await hashPassword(input.startPassword),
     role: input.role ?? "user",
+    scope: input.scope ?? "group_e",
     mustChangePassword: true,
     createdAt: Date.now(),
   };

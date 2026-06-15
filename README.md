@@ -8,12 +8,16 @@ tippen Spielergebnisse, Punkte werden automatisch vergeben, und eine
 
 - **Login** mit E-Mail & Passwort. Benutzer werden vom Admin angelegt und
   bekommen ein **Startpasswort**, das bei der **ersten Anmeldung geändert**
-  werden muss.
-- **Tipps & Punkte**: Ergebnis tippen bis zum Anstoß. Wertung:
+  werden muss. Beim ersten Login wählt jeder seinen **Tipp-Umfang**:
+  - **Nur Gruppe E** (1€-Pool) oder **Alle Spiele**.
+  - Später jederzeit unter **Einstellungen** änderbar.
+- **Tipps & Punkte** (Wertung wie bei **CHECK24**): Ergebnis tippen bis zum
+  Anstoß.
   - exaktes Ergebnis → **4 Punkte**
   - richtige Tordifferenz (kein Remis) → **3 Punkte**
   - richtige Tendenz → **2 Punkte**
-- **Live-Rangliste** (aktualisiert sich automatisch alle 15 Sek.).
+- **Live-Rangliste** (alle 15 Sek.) – mit **getrennter Auswertung** für
+  „Nur Gruppe E" und „Alle Spiele".
 - **Admin-Bereich** (kann alles): Benutzer anlegen/zurücksetzen/löschen,
   Spiele anlegen, Ergebnisse pflegen, Sync starten.
 - **Ergebnisse automatisch aus dem Internet** über [football-data.org]
@@ -59,8 +63,21 @@ Dann `.env.local` ausfüllen:
 ```bash
 npm install
 npm run create-admin   # legt den ersten Admin an
-npm run seed           # legt die WM-Spiele ab 15.06. an
+npm run seed           # legt Teilnehmer, Spiele + alle Tipps an
 ```
+
+`npm run seed` legt an:
+
+- alle **14 Teilnehmer** aus dem Excel-Tippblatt (mit zufälligem Startpasswort –
+  die Liste wird am Ende ausgegeben, bitte notieren & verteilen),
+- die **6 Gruppe-E-Spiele** inkl. der echten Ergebnisse der bereits gespielten
+  Partien (Deutschland 7:1 Curaçao, Elfenbeinküste 1:0 Ecuador),
+- weitere WM-Spiele ab 15.06. für den Modus „Alle Spiele",
+- **alle abgegebenen Tipps** inkl. Punkteberechnung.
+
+> Hinweis: Die E-Mail-Adressen der Teilnehmer sind Platzhalter
+> (`name@wm-tippspiel.local`) – sie dienen nur als Login. Bei Bedarf vor dem
+> Verteilen in `data/groupE.ts` anpassen.
 
 ### 4. Starten
 

@@ -2,6 +2,7 @@
 
 import { useFormState, useFormStatus } from "react-dom";
 import { changePasswordAction } from "../actions/auth";
+import { ScopePicker } from "@/components/ScopePicker";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -39,6 +40,9 @@ export default function ChangePasswordPage() {
             Neues Passwort bestätigen
           </label>
           <input id="confirm" name="confirm" type="password" className="input" required />
+        </div>
+        <div className="border-t border-gray-100 pt-4">
+          <ScopePicker />
         </div>
         {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
         <SubmitButton />

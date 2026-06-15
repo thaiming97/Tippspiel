@@ -1,5 +1,5 @@
 /**
- * Punktelogik des Tippspiels.
+ * Punktelogik des Tippspiels – Wertung wie beim CHECK24-Tippspiel.
  *
  *  - Exaktes Ergebnis ...................... 4 Punkte
  *  - Richtige Tordifferenz (kein Remis) .... 3 Punkte

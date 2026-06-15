@@ -1,7 +1,8 @@
 import "server-only";
 import { db, Collections } from "./firebaseAdmin";
 import { calcPoints } from "./points";
-import type { BetDoc, MatchDoc, StandingRow, UserDoc } from "./types";
+import { GROUP_E_STAGE } from "./types";
+import type { BetDoc, MatchDoc, Scope, StandingRow, UserDoc } from "./types";
 
 /** Alle Spiele, nach Anstoß sortiert. */
 export async function getMatches(): Promise<MatchDoc[]> {
@@ -105,22 +106,39 @@ export async function recomputePoints(): Promise<void> {
   await batch.commit();
 }
 
-/** Aktuelle Rangliste (live), absteigend nach Punkten. */
-export async function getStandings(): Promise<StandingRow[]> {
-  const [usersSnap, betsSnap] = await Promise.all([
+/**
+ * Aktuelle Rangliste (live), absteigend nach Punkten.
+ *
+ *  - scope "group_e": nur Punkte aus Gruppe-E-Spielen, alle Teilnehmer.
+ *  - scope "all":     Punkte aus allen Spielen, nur Teilnehmer mit
+ *                     Tipp-Umfang "alle" (die anderen tippen nur Gruppe E).
+ */
+export async function getStandings(scope: Scope): Promise<StandingRow[]> {
+  const [usersSnap, matchesSnap, betsSnap] = await Promise.all([
     db().collection(Collections.users).get(),
+    db().collection(Collections.matches).get(),
     db().collection(Collections.bets).get(),
   ]);
+
+  const groupEMatchIds = new Set(
+    matchesSnap.docs
+      .filter((d) => (d.data() as MatchDoc).stage === GROUP_E_STAGE)
+      .map((d) => d.id),
+  );
 
   const rows = new Map<string, StandingRow>();
   usersSnap.docs.forEach((d) => {
     const u = d.data() as Omit<UserDoc, "id">;
+    const userScope = u.scope ?? "group_e";
+    // In der Gesamtwertung erscheinen nur „alle"-Tipper.
+    if (scope === "all" && userScope !== "all") return;
     rows.set(d.id, { userId: d.id, name: u.name, points: 0, exact: 0, played: 0 });
   });
 
   betsSnap.docs.forEach((d) => {
     const bet = d.data() as Omit<BetDoc, "id">;
     if (bet.points === null) return;
+    if (scope === "group_e" && !groupEMatchIds.has(bet.matchId)) return;
     const row = rows.get(bet.userId);
     if (!row) return;
     row.points += bet.points;

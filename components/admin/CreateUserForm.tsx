@@ -40,6 +40,13 @@ export function CreateUserForm() {
             <option value="admin">Admin</option>
           </select>
         </div>
+        <div>
+          <label className="label">Tipp-Umfang</label>
+          <select name="scope" className="input">
+            <option value="group_e">Nur Gruppe E (1€)</option>
+            <option value="all">Alle Spiele</option>
+          </select>
+        </div>
       </div>
       <Btn />
       {state?.ok && (

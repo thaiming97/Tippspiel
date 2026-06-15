@@ -44,6 +44,7 @@ async function main() {
     name,
     passwordHash: await bcrypt.hash(password, 10),
     role: "admin" as const,
+    scope: "all" as const,
     mustChangePassword: false,
     createdAt: Date.now(),
   };
