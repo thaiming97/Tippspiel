@@ -1,9 +1,9 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { getCurrentUser } from "@/lib/auth";
 import { db, Collections } from "@/lib/firebaseAdmin";
-import { refreshStandings } from "@/lib/data";
+import { refreshStandings, STANDINGS_TAG } from "@/lib/data";
 
 export type SettingsState = { ok?: string; error?: string } | undefined;
 
@@ -18,6 +18,7 @@ export async function updateScopeAction(
   await db().collection(Collections.users).doc(user.id).update({ scope });
   // Umfang ändert, in welcher Wertung der Nutzer erscheint -> Cache neu bauen.
   await refreshStandings();
+  revalidateTag(STANDINGS_TAG);
 
   revalidatePath("/settings");
   revalidatePath("/matches");

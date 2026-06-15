@@ -1,7 +1,7 @@
 import "server-only";
 import { db, Collections } from "./firebaseAdmin";
 import { fetchMatches } from "./football";
-import { recomputePoints } from "./data";
+import { getMatches, recomputePoints } from "./data";
 import { fixtureId } from "@/data/fixtures";
 import { pairKey, teamKey, translateTeam } from "./teams";
 import type { MatchDoc } from "./types";
@@ -13,6 +13,62 @@ export interface SyncResult {
   finished: number;
   /** true, wenn wegen geänderter Ergebnisse neu ausgewertet wurde. */
   recomputed: boolean;
+}
+
+/** Aktives Zeitfenster eines Spiels: ab 15 Min vor Anstoß bis 3h danach. */
+const PRE_KICKOFF_MS = 15 * 60 * 1000;
+const POST_KICKOFF_MS = 180 * 60 * 1000;
+
+/**
+ * Entscheidet anhand des (gecachten) Spielplans, ob ein Sync gerade überhaupt
+ * sinnvoll ist – nämlich nur, wenn mindestens ein noch nicht beendetes Spiel
+ * läuft oder in seinem aktiven Zeitfenster liegt (kurz vor Anstoß bis einige
+ * Stunden danach, damit der Wechsel auf „beendet" sicher erfasst wird).
+ *
+ * Der Check nutzt den gecachten Spielplan und kostet im Normalfall 0
+ * Firestore-Reads.
+ */
+export async function matchesAreActive(): Promise<boolean> {
+  const matches = await getMatches();
+  const now = Date.now();
+  return matches.some((m) => {
+    if (m.status === "IN_PLAY" || m.status === "PAUSED") return true;
+    if (
+      m.status === "FINISHED" ||
+      m.status === "CANCELLED" ||
+      m.status === "POSTPONED"
+    ) {
+      return false;
+    }
+    const kickoff = new Date(m.kickoff).getTime();
+    if (Number.isNaN(kickoff)) return false;
+    return now >= kickoff - PRE_KICKOFF_MS && now <= kickoff + POST_KICKOFF_MS;
+  });
+}
+
+export interface GatedSyncResult extends SyncResult {
+  /** true, wenn der Sync übersprungen wurde (kein Spiel im aktiven Fenster). */
+  skipped: boolean;
+}
+
+/**
+ * Sync nur ausführen, wenn gerade Spiele laufen/anstehen (siehe
+ * matchesAreActive). Sonst wird ohne API-Aufruf und ohne DB-Read abgebrochen –
+ * gedacht für den automatischen Cron, der sonst rund um die Uhr liefe.
+ */
+export async function syncIfMatchesActive(): Promise<GatedSyncResult> {
+  if (!(await matchesAreActive())) {
+    return {
+      fetched: 0,
+      updated: 0,
+      created: 0,
+      finished: 0,
+      recomputed: false,
+      skipped: true,
+    };
+  }
+  const result = await syncFromInternet();
+  return { ...result, skipped: false };
 }
 
 /**
