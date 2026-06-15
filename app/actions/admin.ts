@@ -14,7 +14,7 @@ import {
   setMatchResult,
 } from "@/lib/admin";
 import { syncFromInternet } from "@/lib/sync";
-import { refreshStandings, MATCHES_TAG } from "@/lib/data";
+import { refreshStandings, MATCHES_TAG, BETS_TAG, userBetsTag } from "@/lib/data";
 
 export type AdminState =
   | { error?: string; ok?: string; password?: string }
@@ -108,7 +108,9 @@ export async function setResultAction(
       return { error: "Bitte gültiges Ergebnis eingeben." };
     }
     await setMatchResult(matchId, home, away);
+    // Ergebnis -> Punkte aller Tipps neu berechnet: Match- und Tipp-Cache leeren.
     revalidateTag(MATCHES_TAG);
+    revalidateTag(BETS_TAG);
     revalidatePath("/admin/matches");
     revalidatePath("/leaderboard");
     return { ok: "Ergebnis gespeichert & Punkte aktualisiert." };
@@ -139,6 +141,7 @@ export async function adminSetTipAction(
       return { error: "Bitte gültigen Tipp eingeben." };
     }
     await adminSetBet(userId, matchId, home, away);
+    revalidateTag(userBetsTag(userId));
     revalidatePath("/admin/tips");
     revalidatePath("/leaderboard");
     return { ok: "Tipp gespeichert." };
@@ -151,7 +154,10 @@ export async function adminDeleteTipAction(formData: FormData): Promise<void> {
   await requireAdmin();
   const userId = String(formData.get("userId") ?? "");
   const matchId = String(formData.get("matchId") ?? "");
-  if (userId && matchId) await adminDeleteBet(userId, matchId);
+  if (userId && matchId) {
+    await adminDeleteBet(userId, matchId);
+    revalidateTag(userBetsTag(userId));
+  }
   revalidatePath("/admin/tips");
   revalidatePath("/leaderboard");
 }
@@ -161,6 +167,8 @@ export async function syncAction(_prev: AdminState): Promise<AdminState> {
     await requireAdmin();
     const result = await syncFromInternet();
     revalidateTag(MATCHES_TAG);
+    // Nur wenn sich Ergebnisse geändert haben, wurden Punkte neu berechnet.
+    if (result.recomputed) revalidateTag(BETS_TAG);
     revalidatePath("/admin/matches");
     revalidatePath("/leaderboard");
     if (result.fetched === 0) {

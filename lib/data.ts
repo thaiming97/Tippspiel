@@ -38,17 +38,41 @@ export async function getMatches(): Promise<MatchDoc[]> {
   return loadMatches();
 }
 
+/**
+ * Cache-Tags für Tipps. Ein „Alle-Spiele"-Tipper hat bis zu ~100 Tipps, die
+ * sonst bei jedem Start-/Spiele-Aufruf gelesen würden. Wir cachen sie pro
+ * Nutzer und entwerten gezielt:
+ *  - userBetsTag(userId): wenn genau dieser Nutzer tippt (placeBet, Admin-Tipp).
+ *  - BETS_TAG: wenn nach Ergebnissen die Punkte aller Tipps neu berechnet werden.
+ */
+export const BETS_TAG = "bets";
+export function userBetsTag(userId: string): string {
+  return `bets-${userId}`;
+}
+
+/** Tipps eines Nutzers als Array (aus dem Cache, siehe getUserBets). */
+function loadUserBets(userId: string): Promise<BetDoc[]> {
+  return unstable_cache(
+    async (): Promise<BetDoc[]> => {
+      const snap = await db()
+        .collection(Collections.bets)
+        .where("userId", "==", userId)
+        .get();
+      return snap.docs.map((d) => ({
+        id: d.id,
+        ...(d.data() as Omit<BetDoc, "id">),
+      }));
+    },
+    ["user-bets", userId],
+    { tags: [BETS_TAG, userBetsTag(userId)], revalidate: 300 },
+  )();
+}
+
 /** Tipps eines Nutzers als Map matchId -> Tipp. */
 export async function getUserBets(userId: string): Promise<Map<string, BetDoc>> {
-  const snap = await db()
-    .collection(Collections.bets)
-    .where("userId", "==", userId)
-    .get();
+  const bets = await loadUserBets(userId);
   const map = new Map<string, BetDoc>();
-  snap.docs.forEach((d) => {
-    const bet = { id: d.id, ...(d.data() as Omit<BetDoc, "id">) };
-    map.set(bet.matchId, bet);
-  });
+  bets.forEach((bet) => map.set(bet.matchId, bet));
   return map;
 }
 
