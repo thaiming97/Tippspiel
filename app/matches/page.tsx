@@ -1,7 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { getMatches, getUserBets, isBettable } from "@/lib/data";
 import { dayKey, formatDay, formatKickoff } from "@/lib/format";
-import { teamFlag } from "@/lib/flags";
+import { Flag } from "@/components/Flag";
 import { MatchBetForm } from "@/components/MatchBetForm";
 import { GROUP_E_STAGE } from "@/lib/types";
 import type { BetDoc, MatchDoc } from "@/lib/types";
@@ -77,10 +77,10 @@ function MatchRow({ match, bet }: { match: MatchDoc; bet?: BetDoc }) {
           <span className="chip">{match.stage}</span>
           <span className="ml-2">{formatKickoff(match.kickoff)}</span>
         </div>
-        <div className="mt-1 font-medium">
-          {teamFlag(match.homeTeam)} {match.homeTeam}{" "}
-          <span className="text-gray-400">–</span>{" "}
-          {match.awayTeam} {teamFlag(match.awayTeam)}
+        <div className="mt-1 flex items-center gap-1.5 font-medium">
+          <Flag team={match.homeTeam} /> {match.homeTeam}
+          <span className="text-gray-400">–</span>
+          {match.awayTeam} <Flag team={match.awayTeam} />
         </div>
         {finished && (
           <div className="text-sm font-semibold text-pitch">

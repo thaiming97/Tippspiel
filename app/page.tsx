@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { getMatches, getStandingsBoth, getUserBets, isBettable } from "@/lib/data";
 import { formatKickoff } from "@/lib/format";
-import { teamFlag } from "@/lib/flags";
+import { Flag } from "@/components/Flag";
 import { GROUP_E_STAGE } from "@/lib/types";
 import type { StandingRow } from "@/lib/types";
 
@@ -119,10 +119,10 @@ export default async function HomePage() {
                       <span className="chip">{m.stage}</span>
                       <span className="ml-2">{formatKickoff(m.kickoff)}</span>
                     </div>
-                    <div className="mt-1 font-medium">
-                      {teamFlag(m.homeTeam)} {m.homeTeam}{" "}
-                      <span className="text-gray-400">–</span>{" "}
-                      {m.awayTeam} {teamFlag(m.awayTeam)}
+                    <div className="mt-1 flex items-center gap-1.5 font-medium">
+                      <Flag team={m.homeTeam} /> {m.homeTeam}
+                      <span className="text-gray-400">–</span>
+                      {m.awayTeam} <Flag team={m.awayTeam} />
                     </div>
                   </div>
                   <div className="shrink-0 text-sm">
