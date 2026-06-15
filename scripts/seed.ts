@@ -11,7 +11,9 @@
  * Idempotent: vorhandene Teilnehmer/Spiele werden nicht überschrieben
  * (Tipps werden aktualisiert).
  */
-import "dotenv/config";
+import { config } from "dotenv";
+config({ path: ".env.local" });
+config();
 import { randomBytes } from "crypto";
 import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";

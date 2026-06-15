@@ -17,7 +17,7 @@ env:
 
   # Projekt-ID deines Firebase-Projekts hier eintragen:
   - variable: FIREBASE_PROJECT_ID
-    value: DEIN-FIREBASE-PROJEKT-ID
+    value: tippspiel-vorserie
     availability:
       - RUNTIME
 

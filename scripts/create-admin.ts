@@ -5,7 +5,9 @@
  * Werte aus .env.local: ADMIN_EMAIL, ADMIN_NAME, ADMIN_PASSWORD
  * Dieser Admin muss das Passwort beim ersten Login NICHT ändern.
  */
-import "dotenv/config";
+import { config } from "dotenv";
+config({ path: ".env.local" });
+config();
 import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import bcrypt from "bcryptjs";
