@@ -105,36 +105,29 @@ Actions, Cloud Scheduler, Cronjob.org …).
 
 ## Deployment
 
-### Variante A: Firebase App Hosting (empfohlen, da bereits Firebase)
+### Variante A: Vercel (kostenlos, ohne Kreditkarte) – empfohlen
 
-Das klassische Firebase Hosting kann nur statische Dateien – diese App braucht
-SSR. Dafür gibt es **Firebase App Hosting** (läuft auf Cloud Run):
+Die App läuft bei Vercel, die Datenbank bleibt in Firebase/Firestore.
 
-1. Firebase CLI: `npm i -g firebase-tools && firebase login`
-2. Secrets im Cloud Secret Manager anlegen:
-   ```bash
-   firebase apphosting:secrets:set AUTH_SECRET
-   firebase apphosting:secrets:set FIREBASE_CLIENT_EMAIL
-   firebase apphosting:secrets:set FIREBASE_PRIVATE_KEY
-   firebase apphosting:secrets:set CRON_SECRET
-   firebase apphosting:secrets:set FOOTBALL_DATA_API_TOKEN
-   ```
-3. In `apphosting.yaml` die `FIREBASE_PROJECT_ID` eintragen.
-4. In der Firebase Console → **App Hosting** ein Backend anlegen und das
-   GitHub-Repo verbinden. Bei jedem Push wird automatisch gebaut & deployed.
+1. Auf [vercel.com](https://vercel.com) mit GitHub anmelden → **Add New… → Project**
+   → Repo importieren → Branch wählen.
+2. Unter **Environment Variables** eintragen (Werte aus deinem Service-Account):
+   `AUTH_SECRET`, `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`,
+   `FIREBASE_PRIVATE_KEY`, `CRON_SECRET` und optional
+   `FOOTBALL_DATA_API_TOKEN` + `FOOTBALL_DATA_COMPETITION=WC`.
+3. **Deploy**. Du bekommst eine URL.
 
-Cron (automatischer Ergebnis-Sync) per **Cloud Scheduler**:
-```bash
-gcloud scheduler jobs create http wm-sync \
-  --schedule="*/10 * * * *" \
-  --uri="https://<deine-app-hosting-url>/api/cron/sync" \
-  --http-method=GET \
-  --headers="Authorization=Bearer <CRON_SECRET>"
-```
+Automatischer Ergebnis-Sync läuft über die mitgelieferte **GitHub-Action**
+(`.github/workflows/sync-results.yml`, alle 10 Min). Dafür im GitHub-Repo unter
+**Settings → Secrets and variables → Actions** zwei Secrets anlegen:
+`APP_URL` (deine Vercel-URL) und `CRON_SECRET` (gleicher Wert wie bei Vercel).
 
-### Variante B: Vercel
+### Variante B: Firebase App Hosting (benötigt Blaze-Tarif)
 
-Repository verbinden, die Variablen aus `.env.local` als Project-Variablen
-hinterlegen, deployen. Der Cron-Job aus `vercel.json` läuft automatisch.
+Firebase App Hosting läuft nur im **Blaze-Tarif** (Kreditkarte nötig, Kosten für
+dieses Tippspiel praktisch 0 €). Konfiguration liegt in `apphosting.yaml`.
+Secrets `AUTH_SECRET` und `CRON_SECRET` per
+`firebase apphosting:secrets:set` anlegen, Backend in der Console mit dem
+GitHub-Repo verbinden. Cron z.B. über Cloud Scheduler auf `/api/cron/sync`.
 
 [football-data.org]: https://www.football-data.org

@@ -1,0 +1,23 @@
+name: WM-Ergebnisse synchronisieren
+
+# Holt regelmäßig Spielplan + Ergebnisse aus dem Internet und berechnet die
+# Punkte neu, indem der geschützte Sync-Endpunkt der App aufgerufen wird.
+#
+# Voraussetzung: zwei Repository-Secrets (Settings → Secrets and variables →
+# Actions):
+#   APP_URL      z.B. https://wm-tippspiel.vercel.app   (ohne Slash am Ende)
+#   CRON_SECRET  derselbe Wert wie in den Vercel-Umgebungsvariablen
+
+on:
+  schedule:
+    - cron: "*/10 * * * *" # alle 10 Minuten
+  workflow_dispatch: {} # manuell auslösbar
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync-Endpunkt aufrufen
+        run: |
+          curl -fsS -X GET "${{ secrets.APP_URL }}/api/cron/sync" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
