@@ -35,9 +35,9 @@ export default async function AdminUsersPage() {
                 <td className="px-4 py-2 font-medium">{u.name}</td>
                 <td className="px-4 py-2 font-mono text-xs">{u.username}</td>
                 <td className="px-4 py-2 text-gray-600">
-                  {u.lastLoginAt ? (
-                    <span title={formatDateTime(u.lastLoginAt)}>
-                      {formatRelative(u.lastLoginAt)}
+                  {u.lastSeenAt ?? u.lastLoginAt ? (
+                    <span title={formatDateTime((u.lastSeenAt ?? u.lastLoginAt)!)}>
+                      {formatRelative((u.lastSeenAt ?? u.lastLoginAt)!)}
                     </span>
                   ) : (
                     <span className="text-gray-400">noch nie</span>

@@ -21,6 +21,13 @@ export interface UserDoc {
   createdAt: number;
   /** Zeitpunkt des letzten erfolgreichen Logins (ms seit Epoch). */
   lastLoginAt?: number;
+  /**
+   * Zeitpunkt der letzten Aktivität (ms seit Epoch). Wird bei jedem
+   * authentifizierten Seitenaufruf gedrosselt aktualisiert – im Gegensatz zu
+   * lastLoginAt spiegelt das „zuletzt online" wider, auch wenn man eingeloggt
+   * bleibt.
+   */
+  lastSeenAt?: number;
 }
 
 /** Status eines Spiels (angelehnt an football-data.org). */

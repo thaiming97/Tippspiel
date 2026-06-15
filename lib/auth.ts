@@ -69,13 +69,28 @@ export async function getSession(): Promise<SessionPayload | null> {
   }
 }
 
+/** Mindestabstand zwischen zwei „zuletzt online"-Schreibvorgängen (5 Min.). */
+const SEEN_THROTTLE_MS = 5 * 60 * 1000;
+
 /** Lädt den aktuellen Nutzer frisch aus Firestore (autoritative Quelle). */
 export async function getCurrentUser(): Promise<UserDoc | null> {
   const session = await getSession();
   if (!session) return null;
-  const snap = await db().collection(Collections.users).doc(session.sub).get();
+  const ref = db().collection(Collections.users).doc(session.sub);
+  const snap = await ref.get();
   if (!snap.exists) return null;
-  return { id: snap.id, ...(snap.data() as Omit<UserDoc, "id">) };
+  const user = { id: snap.id, ...(snap.data() as Omit<UserDoc, "id">) };
+
+  // „Zuletzt online" gedrosselt fortschreiben: nur, wenn der letzte Eintrag
+  // älter als SEEN_THROTTLE_MS ist – so reicht ein Firestore-Write je 5 Min.
+  // statt einem pro Seitenaufruf.
+  const now = Date.now();
+  if (now - (user.lastSeenAt ?? 0) > SEEN_THROTTLE_MS) {
+    user.lastSeenAt = now;
+    await ref.update({ lastSeenAt: now });
+  }
+
+  return user;
 }
 
 /** Wirft, wenn kein Admin angemeldet ist – für API-Routen. */

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Flag } from "@/components/Flag";
-import { LeaderBallFlood } from "@/components/LeaderBallFlood";
+import { LeaderCelebration } from "@/components/LeaderCelebration";
 import { formatKickoff } from "@/lib/format";
 import type { MatchDoc, Scope } from "@/lib/types";
 
@@ -45,10 +45,9 @@ export function HomeView({
         {/* Spitzenreiter */}
         <div className="card relative overflow-hidden border-gold/30 bg-gradient-to-br from-gold/[0.12] via-white to-white">
           <div className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-gold/20 blur-2xl" />
-          <LeaderBallFlood leaderName={leaderName ?? ""} />
           <div className="eyebrow !text-gold-dark">Aktuell führt · Gruppe E</div>
           <div className="mt-2 flex items-center gap-2.5">
-            <span className="text-3xl">🥇</span>
+            <LeaderCelebration leaderName={leaderName ?? ""} />
             <span className="font-display text-2xl font-extrabold tracking-tight">
               {leaderName ?? "– noch niemand –"}
             </span>
