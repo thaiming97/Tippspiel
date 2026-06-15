@@ -216,11 +216,10 @@ export async function refreshStandings(): Promise<void> {
 }
 
 /**
- * Aktuelle Rangliste, absteigend nach Punkten. Liest nur das vorberechnete
- * Cache-Dokument (1 Read statt der ganzen DB). Existiert es noch nicht, wird
- * es einmalig live berechnet und geschrieben.
+ * Beide Wertungen aus dem Cache (ein Read). Existiert der Cache noch nicht,
+ * wird er einmalig live berechnet und geschrieben.
  */
-export async function getStandings(scope: Scope): Promise<StandingRow[]> {
+async function readStandingsCache(): Promise<StandingsCache> {
   const snap = await db()
     .collection(Collections.standings)
     .doc(STANDINGS_DOC)
@@ -228,7 +227,11 @@ export async function getStandings(scope: Scope): Promise<StandingRow[]> {
 
   if (snap.exists) {
     const cache = snap.data() as StandingsCache;
-    return cache[scope] ?? [];
+    return {
+      group_e: cache.group_e ?? [],
+      all: cache.all ?? [],
+      updatedAt: cache.updatedAt ?? 0,
+    };
   }
 
   // Fallback: noch nie berechnet -> einmal berechnen, cachen und ausliefern.
@@ -237,5 +240,23 @@ export async function getStandings(scope: Scope): Promise<StandingRow[]> {
     .collection(Collections.standings)
     .doc(STANDINGS_DOC)
     .set(cache);
-  return cache[scope] ?? [];
+  return cache;
+}
+
+/**
+ * Aktuelle Rangliste einer Wertung, absteigend nach Punkten. Liest nur das
+ * vorberechnete Cache-Dokument (1 Read statt der ganzen DB).
+ */
+export async function getStandings(scope: Scope): Promise<StandingRow[]> {
+  const cache = await readStandingsCache();
+  return cache[scope];
+}
+
+/** Beide Wertungen gemeinsam (für die Übersicht: Rang in Gruppe & Gesamt). */
+export async function getStandingsBoth(): Promise<{
+  group_e: StandingRow[];
+  all: StandingRow[];
+}> {
+  const { group_e, all } = await readStandingsCache();
+  return { group_e, all };
 }

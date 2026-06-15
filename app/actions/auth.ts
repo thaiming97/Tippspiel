@@ -42,6 +42,9 @@ export async function loginAction(
     return { error: "Name oder Passwort ist falsch." };
   }
 
+  // Letzten Login festhalten (für die Admin-Übersicht).
+  await doc.ref.update({ lastLoginAt: Date.now() });
+
   await createSession({
     sub: user.id,
     name: user.name,
