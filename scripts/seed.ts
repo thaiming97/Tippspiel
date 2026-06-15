@@ -24,6 +24,7 @@ import {
   PARTICIPANTS,
 } from "../data/groupE";
 import { calcPoints } from "../lib/points";
+import { normalizeUsername } from "../lib/username";
 
 function init() {
   if (getApps().length) return;
@@ -64,6 +65,7 @@ async function main() {
     const pw = START_PASSWORD;
     const ref = db.collection("users").doc();
     await ref.set({
+      username: normalizeUsername(p.name),
       email: p.email,
       name: p.name,
       passwordHash: await bcrypt.hash(pw, 10),

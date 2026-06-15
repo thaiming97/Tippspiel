@@ -7,7 +7,10 @@ export type Scope = "group_e" | "all";
 
 export interface UserDoc {
   id: string;
-  email: string;
+  /** Login-Name (normalisiert, eindeutig). */
+  username: string;
+  /** Optional – nur informativ, nicht für den Login. */
+  email?: string;
   name: string;
   passwordHash: string;
   role: Role;

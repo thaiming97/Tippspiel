@@ -21,7 +21,7 @@ export default async function AdminUsersPage() {
           <thead className="bg-gray-50 text-left text-gray-500">
             <tr>
               <th className="px-4 py-2">Name</th>
-              <th className="px-4 py-2">E-Mail</th>
+              <th className="px-4 py-2">Login</th>
               <th className="px-4 py-2">Rolle</th>
               <th className="px-4 py-2">Status</th>
               <th className="px-4 py-2 text-right">Aktionen</th>
@@ -31,7 +31,7 @@ export default async function AdminUsersPage() {
             {users.map((u) => (
               <tr key={u.id} className="border-t border-gray-100">
                 <td className="px-4 py-2 font-medium">{u.name}</td>
-                <td className="px-4 py-2">{u.email}</td>
+                <td className="px-4 py-2 font-mono text-xs">{u.username}</td>
                 <td className="px-4 py-2">
                   {u.role === "admin" ? "Admin" : "Teilnehmer"}
                 </td>

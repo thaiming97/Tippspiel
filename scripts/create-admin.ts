@@ -11,6 +11,7 @@ config();
 import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import bcrypt from "bcryptjs";
+import { normalizeUsername } from "../lib/username";
 
 function init() {
   if (getApps().length) return;
@@ -42,6 +43,7 @@ async function main() {
     .get();
 
   const data = {
+    username: normalizeUsername(name),
     email,
     name,
     passwordHash: await bcrypt.hash(password, 10),

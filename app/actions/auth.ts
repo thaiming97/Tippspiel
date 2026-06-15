@@ -9,6 +9,7 @@ import {
   hashPassword,
   verifyPassword,
 } from "@/lib/auth";
+import { normalizeUsername } from "@/lib/username";
 import type { UserDoc } from "@/lib/types";
 
 export type ActionState = { error?: string } | undefined;
@@ -17,28 +18,28 @@ export async function loginAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const username = normalizeUsername(String(formData.get("name") ?? ""));
   const password = String(formData.get("password") ?? "");
 
-  if (!email || !password) {
-    return { error: "Bitte E-Mail und Passwort eingeben." };
+  if (!username || !password) {
+    return { error: "Bitte Name und Passwort eingeben." };
   }
 
   const snap = await db()
     .collection(Collections.users)
-    .where("email", "==", email)
+    .where("username", "==", username)
     .limit(1)
     .get();
 
   if (snap.empty) {
-    return { error: "E-Mail oder Passwort ist falsch." };
+    return { error: "Name oder Passwort ist falsch." };
   }
 
   const doc = snap.docs[0];
   const user = { id: doc.id, ...(doc.data() as Omit<UserDoc, "id">) };
   const ok = await verifyPassword(password, user.passwordHash);
   if (!ok) {
-    return { error: "E-Mail oder Passwort ist falsch." };
+    return { error: "Name oder Passwort ist falsch." };
   }
 
   await createSession({

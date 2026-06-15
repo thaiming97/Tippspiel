@@ -24,14 +24,16 @@ export function CreateUserForm() {
           <input name="name" className="input" required />
         </div>
         <div>
-          <label className="label">E-Mail</label>
-          <input name="email" type="email" className="input" required />
+          <label className="label">
+            E-Mail <span className="text-gray-400">(optional)</span>
+          </label>
+          <input name="email" type="email" className="input" />
         </div>
         <div>
           <label className="label">
-            Startpasswort <span className="text-gray-400">(leer = automatisch)</span>
+            Startpasswort <span className="text-gray-400">(leer = Start123)</span>
           </label>
-          <input name="startPassword" className="input" placeholder="automatisch generieren" />
+          <input name="startPassword" className="input" placeholder="Start123" />
         </div>
         <div>
           <label className="label">Rolle</label>

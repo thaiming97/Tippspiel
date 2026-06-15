@@ -3,6 +3,7 @@ import { randomBytes } from "crypto";
 import { db, Collections } from "./firebaseAdmin";
 import { hashPassword } from "./auth";
 import { recomputePoints } from "./data";
+import { normalizeUsername } from "./username";
 import type { MatchDoc, Role, Scope, UserDoc } from "./types";
 
 /** Erzeugt ein gut lesbares Startpasswort. */
@@ -15,26 +16,30 @@ export function generateStartPassword(): string {
  * geändert werden (mustChangePassword = true).
  */
 export async function createUser(input: {
-  email: string;
   name: string;
   startPassword: string;
+  email?: string;
   role?: Role;
   scope?: Scope;
 }): Promise<{ id: string }> {
-  const email = input.email.trim().toLowerCase();
+  const name = input.name.trim();
+  const username = normalizeUsername(name);
+  if (!username) throw new Error("Name ist Pflicht.");
+
   const existing = await db()
     .collection(Collections.users)
-    .where("email", "==", email)
+    .where("username", "==", username)
     .limit(1)
     .get();
   if (!existing.empty) {
-    throw new Error("Es existiert bereits ein Benutzer mit dieser E-Mail.");
+    throw new Error("Es existiert bereits ein Benutzer mit diesem Namen.");
   }
 
   const ref = db().collection(Collections.users).doc();
   const user: Omit<UserDoc, "id"> = {
-    email,
-    name: input.name.trim(),
+    username,
+    name,
+    email: input.email?.trim().toLowerCase() || "",
     passwordHash: await hashPassword(input.startPassword),
     role: input.role ?? "user",
     scope: input.scope ?? "group_e",
