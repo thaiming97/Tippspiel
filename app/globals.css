@@ -7,23 +7,30 @@
 }
 
 body {
-  @apply bg-gray-50 text-gray-900;
+  @apply bg-gray-100 text-gray-900 antialiased;
 }
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center rounded-md bg-pitch px-4 py-2 text-sm font-medium text-white transition hover:bg-pitch-dark disabled:opacity-50;
+    @apply inline-flex items-center justify-center rounded-lg bg-pitch px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-pitch-dark active:scale-[0.98] disabled:opacity-50;
+  }
+  .btn-gold {
+    @apply inline-flex items-center justify-center rounded-lg bg-gold px-4 py-2 text-sm font-semibold text-pitch-dark shadow-sm transition hover:bg-gold-dark active:scale-[0.98] disabled:opacity-50;
   }
   .btn-ghost {
-    @apply inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100;
+    @apply inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100;
   }
   .input {
-    @apply w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-pitch focus:outline-none focus:ring-1 focus:ring-pitch;
+    @apply w-full rounded-lg border border-gray-300 px-3 py-2 text-sm transition focus:border-pitch focus:outline-none focus:ring-2 focus:ring-pitch/30;
   }
   .card {
-    @apply rounded-lg border border-gray-200 bg-white p-4 shadow-sm;
+    @apply rounded-xl border border-gray-200 bg-white p-4 shadow-card;
   }
   .label {
     @apply mb-1 block text-sm font-medium text-gray-700;
+  }
+  /* Kleines Label-Chip, z.B. Spielphase. */
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full bg-pitch/10 px-2 py-0.5 text-xs font-medium text-pitch-dark;
   }
 }

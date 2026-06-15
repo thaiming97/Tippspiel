@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { getMatches, getUserBets, isBettable } from "@/lib/data";
 import { dayKey, formatDay, formatKickoff } from "@/lib/format";
+import { teamFlag } from "@/lib/flags";
 import { MatchBetForm } from "@/components/MatchBetForm";
 import { GROUP_E_STAGE } from "@/lib/types";
 import type { BetDoc, MatchDoc } from "@/lib/types";
@@ -70,14 +71,16 @@ function MatchRow({ match, bet }: { match: MatchDoc; bet?: BetDoc }) {
   const finished = match.status === "FINISHED";
 
   return (
-    <div className="card flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="card flex flex-col gap-3 transition hover:shadow-card-hover sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
         <div className="text-xs text-gray-400">
-          {match.stage} · {formatKickoff(match.kickoff)}
+          <span className="chip">{match.stage}</span>
+          <span className="ml-2">{formatKickoff(match.kickoff)}</span>
         </div>
-        <div className="font-medium">
-          {match.homeTeam} <span className="text-gray-400">–</span>{" "}
-          {match.awayTeam}
+        <div className="mt-1 font-medium">
+          {teamFlag(match.homeTeam)} {match.homeTeam}{" "}
+          <span className="text-gray-400">–</span>{" "}
+          {match.awayTeam} {teamFlag(match.awayTeam)}
         </div>
         {finished && (
           <div className="text-sm font-semibold text-pitch">
@@ -92,6 +95,7 @@ function MatchRow({ match, bet }: { match: MatchDoc; bet?: BetDoc }) {
             matchId={match.id}
             defaultHome={bet?.homeScore}
             defaultAway={bet?.awayScore}
+            hasBet={bet !== undefined}
           />
         ) : (
           <div className="text-right text-sm">

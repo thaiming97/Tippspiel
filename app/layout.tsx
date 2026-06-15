@@ -16,40 +16,52 @@ export default async function RootLayout({
 }) {
   const session = await getSession();
 
+  const loggedIn = session && !session.mustChangePassword;
+
   return (
     <html lang="de">
       <body>
-        {session && !session.mustChangePassword && (
-          <header className="border-b border-gray-200 bg-pitch text-white">
-            <nav className="mx-auto flex max-w-4xl items-center gap-4 px-4 py-3 text-sm">
-              <Link href="/" className="font-semibold">
-                ⚽ WM-Tippspiel
-              </Link>
-              <Link href="/matches" className="hover:underline">
-                Spiele & Tipps
-              </Link>
-              <Link href="/leaderboard" className="hover:underline">
-                Rangliste
-              </Link>
-              <Link href="/settings" className="hover:underline">
-                Einstellungen
-              </Link>
-              {session.role === "admin" && (
-                <Link href="/admin" className="hover:underline">
-                  Admin
+        {loggedIn && (
+          <header className="bg-pitch-gradient text-white shadow-md">
+            <div className="mx-auto max-w-4xl px-4">
+              <div className="flex items-center justify-between py-3">
+                <Link href="/" className="flex items-center gap-2 text-lg font-bold tracking-tight">
+                  <span className="text-2xl">⚽</span>
+                  <span>WM-Tippspiel <span className="text-gold">2026</span></span>
                 </Link>
-              )}
-              <form action={logoutAction} className="ml-auto">
-                <span className="mr-3 opacity-90">{session.name}</span>
-                <button className="rounded bg-white/20 px-2 py-1 hover:bg-white/30">
-                  Abmelden
-                </button>
-              </form>
-            </nav>
+                <form action={logoutAction} className="flex items-center gap-2">
+                  <span className="hidden text-sm opacity-90 sm:inline">
+                    {session!.name}
+                  </span>
+                  <button className="rounded-lg bg-white/15 px-3 py-1.5 text-sm font-medium transition hover:bg-white/25">
+                    Abmelden
+                  </button>
+                </form>
+              </div>
+              <nav className="-mb-px flex items-center gap-1 overflow-x-auto text-sm font-medium">
+                <NavLink href="/">Start</NavLink>
+                <NavLink href="/matches">Spiele & Tipps</NavLink>
+                <NavLink href="/leaderboard">Rangliste</NavLink>
+                <NavLink href="/help">Hilfe</NavLink>
+                <NavLink href="/settings">Einstellungen</NavLink>
+                {session!.role === "admin" && <NavLink href="/admin">Admin</NavLink>}
+              </nav>
+            </div>
           </header>
         )}
         <main className="mx-auto max-w-4xl px-4 py-6">{children}</main>
       </body>
     </html>
+  );
+}
+
+function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className="whitespace-nowrap rounded-t-lg border-b-2 border-transparent px-3 py-2 text-white/85 transition hover:border-gold hover:text-white"
+    >
+      {children}
+    </Link>
   );
 }

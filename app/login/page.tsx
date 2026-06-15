@@ -16,11 +16,16 @@ export default function LoginPage() {
   const [state, formAction] = useFormState(loginAction, undefined);
 
   return (
-    <div className="mx-auto mt-12 max-w-sm">
-      <h1 className="mb-1 text-center text-2xl font-bold">⚽ WM-Tippspiel</h1>
-      <p className="mb-6 text-center text-sm text-gray-500">
-        Bitte mit deinen Zugangsdaten anmelden.
-      </p>
+    <div className="mx-auto mt-10 max-w-sm">
+      <div className="mb-6 rounded-2xl bg-pitch-gradient p-6 text-center text-white shadow-md">
+        <div className="text-4xl">⚽</div>
+        <h1 className="mt-1 text-2xl font-bold">
+          WM-Tippspiel <span className="text-gold">2026</span>
+        </h1>
+        <p className="mt-1 text-sm text-white/80">
+          Bitte mit deinen Zugangsdaten anmelden.
+        </p>
+      </div>
       <form action={formAction} className="card space-y-4">
         <div>
           <label className="label" htmlFor="name">

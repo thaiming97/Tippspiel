@@ -19,6 +19,8 @@ export interface UserDoc {
   /** true, solange der Nutzer sein Startpasswort noch nicht geändert hat. */
   mustChangePassword: boolean;
   createdAt: number;
+  /** Zeitpunkt des letzten erfolgreichen Logins (ms seit Epoch). */
+  lastLoginAt?: number;
 }
 
 /** Status eines Spiels (angelehnt an football-data.org). */

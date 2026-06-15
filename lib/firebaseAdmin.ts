@@ -53,4 +53,9 @@ export const Collections = {
   users: "users",
   matches: "matches",
   bets: "bets",
+  // Vorberechnete Ranglisten (1 Dokument statt der ganzen DB pro Aufruf).
+  standings: "standings",
 } as const;
+
+/** Doc-ID des einzigen Ranglisten-Caches in der Collection "standings". */
+export const STANDINGS_DOC = "current";

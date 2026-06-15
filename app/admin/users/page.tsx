@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { listUsers } from "@/lib/admin";
 import { deleteUserAction } from "@/app/actions/admin";
+import { formatDateTime, formatRelative } from "@/lib/format";
 import { CreateUserForm } from "@/components/admin/CreateUserForm";
 import { ResetPasswordForm } from "@/components/admin/ResetPasswordForm";
 
@@ -22,6 +23,7 @@ export default async function AdminUsersPage() {
             <tr>
               <th className="px-4 py-2">Name</th>
               <th className="px-4 py-2">Login</th>
+              <th className="px-4 py-2">Zuletzt online</th>
               <th className="px-4 py-2">Rolle</th>
               <th className="px-4 py-2">Status</th>
               <th className="px-4 py-2 text-right">Aktionen</th>
@@ -32,6 +34,15 @@ export default async function AdminUsersPage() {
               <tr key={u.id} className="border-t border-gray-100">
                 <td className="px-4 py-2 font-medium">{u.name}</td>
                 <td className="px-4 py-2 font-mono text-xs">{u.username}</td>
+                <td className="px-4 py-2 text-gray-600">
+                  {u.lastLoginAt ? (
+                    <span title={formatDateTime(u.lastLoginAt)}>
+                      {formatRelative(u.lastLoginAt)}
+                    </span>
+                  ) : (
+                    <span className="text-gray-400">noch nie</span>
+                  )}
+                </td>
                 <td className="px-4 py-2">
                   {u.role === "admin" ? "Admin" : "Teilnehmer"}
                 </td>
