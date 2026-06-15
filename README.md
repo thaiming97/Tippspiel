@@ -105,8 +105,36 @@ Actions, Cloud Scheduler, Cronjob.org …).
 
 ## Deployment
 
-Empfohlen: **Vercel**. Repository verbinden, die Umgebungsvariablen aus
-`.env.local` als Projekt-Variablen hinterlegen, deployen. Der Cron-Job läuft
-dann automatisch.
+### Variante A: Firebase App Hosting (empfohlen, da bereits Firebase)
+
+Das klassische Firebase Hosting kann nur statische Dateien – diese App braucht
+SSR. Dafür gibt es **Firebase App Hosting** (läuft auf Cloud Run):
+
+1. Firebase CLI: `npm i -g firebase-tools && firebase login`
+2. Secrets im Cloud Secret Manager anlegen:
+   ```bash
+   firebase apphosting:secrets:set AUTH_SECRET
+   firebase apphosting:secrets:set FIREBASE_CLIENT_EMAIL
+   firebase apphosting:secrets:set FIREBASE_PRIVATE_KEY
+   firebase apphosting:secrets:set CRON_SECRET
+   firebase apphosting:secrets:set FOOTBALL_DATA_API_TOKEN
+   ```
+3. In `apphosting.yaml` die `FIREBASE_PROJECT_ID` eintragen.
+4. In der Firebase Console → **App Hosting** ein Backend anlegen und das
+   GitHub-Repo verbinden. Bei jedem Push wird automatisch gebaut & deployed.
+
+Cron (automatischer Ergebnis-Sync) per **Cloud Scheduler**:
+```bash
+gcloud scheduler jobs create http wm-sync \
+  --schedule="*/10 * * * *" \
+  --uri="https://<deine-app-hosting-url>/api/cron/sync" \
+  --http-method=GET \
+  --headers="Authorization=Bearer <CRON_SECRET>"
+```
+
+### Variante B: Vercel
+
+Repository verbinden, die Variablen aus `.env.local` als Project-Variablen
+hinterlegen, deployen. Der Cron-Job aus `vercel.json` läuft automatisch.
 
 [football-data.org]: https://www.football-data.org
