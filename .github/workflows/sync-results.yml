@@ -17,7 +17,28 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
+      - name: Konfiguration prüfen
+        run: |
+          if [ -z "${{ secrets.APP_URL }}" ]; then
+            echo "::error::Repository-Secret APP_URL ist nicht gesetzt."
+            exit 1
+          fi
+          if [ -z "${{ secrets.CRON_SECRET }}" ]; then
+            echo "::error::Repository-Secret CRON_SECRET ist nicht gesetzt."
+            exit 1
+          fi
+
       - name: Sync-Endpunkt aufrufen
         run: |
-          curl -fsS -X GET "${{ secrets.APP_URL }}/api/cron/sync" \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+          # Status + Body getrennt erfassen, damit bei einem Fehler die echte
+          # Ursache (z.B. 401 Nicht autorisiert oder 500 mit Meldung) sichtbar
+          # ist – statt nur eines kryptischen curl-Exit-Codes (22).
+          code=$(curl -sS -o /tmp/sync-body.txt -w "%{http_code}" -X GET \
+            "${{ secrets.APP_URL }}/api/cron/sync" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}")
+          echo "HTTP-Status: $code"
+          echo "Antwort: $(cat /tmp/sync-body.txt)"
+          if [ "$code" -ge 400 ]; then
+            echo "::error::Sync fehlgeschlagen (HTTP $code) – siehe Antwort oben."
+            exit 1
+          fi
