@@ -46,11 +46,8 @@ export function HomeView({
         <div className="card relative overflow-hidden border-gold/30 bg-gradient-to-br from-gold/[0.12] via-white to-white">
           <div className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-gold/20 blur-2xl" />
           <div className="eyebrow !text-gold-dark">Aktuell führt · Gruppe E</div>
-          <div className="mt-2 flex items-center gap-2.5">
+          <div className="mt-2">
             <LeaderCelebration leaderName={leaderName ?? ""} />
-            <span className="font-display text-2xl font-extrabold tracking-tight">
-              {leaderName ?? "– noch niemand –"}
-            </span>
           </div>
           {leaderPoints !== null && (
             <div className="mt-0.5 text-sm font-medium text-ink-soft">

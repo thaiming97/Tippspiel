@@ -92,12 +92,15 @@ body {
     transition-duration: 0.01ms !important;
   }
 
-  /* Ausnahme: Die Sieger-Animation wird bewusst per Klick aufs Medaillen-
-     Symbol bzw. bei einem Führungswechsel ausgelöst (kein Dauer-/Ambiente-
-     Effekt). Sie soll auch dann sichtbar laufen, wenn „Animationen reduzieren"
-     aktiv ist – sonst blitzt sie in 0,01 ms unsichtbar vorbei. Höhere
-     Spezifität (Klasse > *) gewinnt trotz beidseitigem !important. */
-  .animate-ball-flood {
-    animation-duration: 2.3s !important;
+  /* Ausnahme: Die Sieger-Feier wird bewusst per Klick aufs Medaillen-Symbol
+     bzw. bei einem Führungswechsel ausgelöst (kein Dauer-/Ambiente-Effekt). Sie
+     soll auch dann sichtbar laufen, wenn „Animationen reduzieren" aktiv ist –
+     sonst blitzt sie in 0,01 ms unsichtbar vorbei. Höhere Spezifität (Klasse > *)
+     gewinnt trotz beidseitigem !important. */
+  .leader-celebration .celebration-ball {
+    transition-duration: 450ms !important;
+  }
+  .leader-celebration .celebration-name {
+    transition-duration: 500ms !important;
   }
 }
