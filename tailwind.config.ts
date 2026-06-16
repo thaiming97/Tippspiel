@@ -65,23 +65,6 @@ const config: Config = {
           "55%": { opacity: "1" },
           "100%": { opacity: "1", transform: "translateY(0) rotateX(0)" },
         },
-        // Panel-Wechsel Rangliste <-> Tipp-Detail (horizontaler Slide).
-        "slide-in-right": {
-          "0%": { opacity: "0", transform: "translateX(14%)" },
-          "100%": { opacity: "1", transform: "translateX(0)" },
-        },
-        "slide-in-left": {
-          "0%": { opacity: "0", transform: "translateX(-14%)" },
-          "100%": { opacity: "1", transform: "translateX(0)" },
-        },
-        "slide-out-left": {
-          "0%": { opacity: "1", transform: "translateX(0)" },
-          "100%": { opacity: "0", transform: "translateX(-14%)" },
-        },
-        "slide-out-right": {
-          "0%": { opacity: "1", transform: "translateX(0)" },
-          "100%": { opacity: "0", transform: "translateX(14%)" },
-        },
         // Fußball-Flut: Ball fällt von oben in die Karte, bleibt kurz, läuft ab.
         "ball-flood": {
           "0%": { transform: "translateY(-280%) rotate(0deg)", opacity: "0" },
@@ -115,10 +98,6 @@ const config: Config = {
         "page-in": "page-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both",
         rise: "rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both",
         "row-in": "row-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) both",
-        "slide-in-right": "slide-in-right 0.45s cubic-bezier(0.22, 1, 0.36, 1) both",
-        "slide-in-left": "slide-in-left 0.45s cubic-bezier(0.22, 1, 0.36, 1) both",
-        "slide-out-left": "slide-out-left 0.42s cubic-bezier(0.4, 0, 1, 1) both",
-        "slide-out-right": "slide-out-right 0.42s cubic-bezier(0.4, 0, 1, 1) both",
         "ball-flood": "ball-flood 2.3s cubic-bezier(0.45, 0, 0.3, 1) both",
         shimmer: "shimmer 2.6s linear infinite",
         "leader-pop": "leader-pop 0.9s cubic-bezier(0.22, 1, 0.36, 1) both",

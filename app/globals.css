@@ -103,4 +103,11 @@ body {
   .leader-celebration .celebration-name {
     transition-duration: 500ms !important;
   }
+
+  /* Ausnahme: Der Rangliste<->Tipp-Detail-Slide wird bewusst per Antippen
+     ausgelöst und soll auch bei „Animationen reduzieren" weich gleiten. */
+  .lb-shell,
+  .lb-track {
+    transition-duration: 460ms !important;
+  }
 }

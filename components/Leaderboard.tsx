@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Flag } from "@/components/Flag";
 import { formatKickoff } from "@/lib/format";
 import type { Scope, StandingRow } from "@/lib/types";
 
 const POLL_MS = 60000;
+const SLIDE_MS = 460;
+const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 
 type Both = { group_e: StandingRow[]; all: StandingRow[] };
 
@@ -22,10 +24,6 @@ interface TipRow {
   points: number | null;
 }
 
-type View = { mode: "list" } | { mode: "detail"; row: StandingRow };
-
-const SLIDE_MS = 480;
-
 function pointsBadge(points: number): string {
   if (points === 4) return "bg-gold-gradient text-ink shadow-glow-gold";
   if (points === 3) return "bg-pitch text-white";
@@ -37,30 +35,26 @@ function pointsBadge(points: number): string {
  * Live-Rangliste mit antippbaren Namen. Ein Tipp auf einen Namen lässt die
  * Rangliste nach links herausgleiten und die abgegebenen Tipps der Person (mit
  * Punkten je Spiel) von rechts hereingleiten; zurück geht es umgekehrt.
+ *
+ * Smooth gemacht über einen gemeinsamen Slide-Track (beide Panels nebeneinander,
+ * der Track wird verschoben) plus mitanimierte Container-Höhe. Die Tipps werden
+ * VOR dem Slide geladen, damit das Detail sofort vollständig hereingleitet (kein
+ * Nachpoppen, kein Höhensprung).
  */
 export function Leaderboard({ initial }: { initial: Both }) {
   const [scope, setScope] = useState<Scope>("group_e");
   const [data, setData] = useState<Both>(initial);
   const [updatedAt, setUpdatedAt] = useState<number>(Date.now());
 
-  // Panel-Wechsel Rangliste <-> Detail.
-  const [view, setView] = useState<View>({ mode: "list" });
-  const [leaving, setLeaving] = useState<View | null>(null);
-  const [started, setStarted] = useState(false);
-
-  const selectedId = view.mode === "detail" ? view.row.userId : null;
-
-  // Tipps der ausgewählten Person.
+  const [mode, setMode] = useState<"list" | "detail">("list");
+  const [row, setRow] = useState<StandingRow | null>(null);
+  const [pendingId, setPendingId] = useState<string | null>(null);
   const [tips, setTips] = useState<TipRow[] | null>(null);
-  const [tipsLoading, setTipsLoading] = useState(false);
   const [tipsError, setTipsError] = useState(false);
 
-  function go(next: View) {
-    setStarted(true);
-    setLeaving(view);
-    setView(next);
-    window.setTimeout(() => setLeaving(null), SLIDE_MS);
-  }
+  const listRef = useRef<HTMLDivElement>(null);
+  const detailRef = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState<number>();
 
   // Hintergrund-Aktualisierung der Rangliste.
   useEffect(() => {
@@ -86,31 +80,40 @@ export function Leaderboard({ initial }: { initial: Both }) {
     };
   }, [scope]);
 
-  // Tipps laden, sobald eine Person ausgewählt ist (oder die Wertung wechselt).
-  useEffect(() => {
-    if (!selectedId) return;
-    let active = true;
-    setTips(null);
+  // Höhe des aktiven Panels messen und die Container-Höhe darauf animieren.
+  useLayoutEffect(() => {
+    const el = mode === "list" ? listRef.current : detailRef.current;
+    if (!el) return;
+    const update = () => setHeight(el.offsetHeight);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [mode, tips, row, scope, data, tipsError]);
+
+  function openRow(r: StandingRow) {
+    if (pendingId) return;
+    setPendingId(r.userId);
     setTipsError(false);
-    setTipsLoading(true);
-    fetch(`/api/tips?userId=${encodeURIComponent(selectedId)}&scope=${scope}`, {
+    fetch(`/api/tips?userId=${encodeURIComponent(r.userId)}&scope=${scope}`, {
       cache: "no-store",
     })
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("bad"))))
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error("bad"))))
       .then((j) => {
-        if (!active) return;
+        // Erst Daten setzen, dann sliden -> Detail gleitet fertig herein.
         setTips(j.tips as TipRow[]);
-        setTipsLoading(false);
+        setRow(r);
+        setMode("detail");
+        setPendingId(null);
       })
       .catch(() => {
-        if (!active) return;
+        setTips(null);
         setTipsError(true);
-        setTipsLoading(false);
+        setRow(r);
+        setMode("detail");
+        setPendingId(null);
       });
-    return () => {
-      active = false;
-    };
-  }, [selectedId, scope]);
+  }
 
   const rows = data[scope];
 
@@ -185,10 +188,11 @@ export function Leaderboard({ initial }: { initial: Both }) {
                     : rank === 3
                       ? "bg-gradient-to-br from-amber-300 to-amber-600 text-white shadow-card"
                       : "bg-ink/[0.04] text-ink-soft";
+              const pending = pendingId === r.userId;
               return (
                 <li key={r.userId} className="animate-row-in" style={{ animationDelay: `${i * 70}ms` }}>
                   <button
-                    onClick={() => go({ mode: "detail", row: r })}
+                    onClick={() => openRow(r)}
                     className={`group flex w-full items-center gap-3 rounded-2xl border p-3.5 pr-4 text-left transition-all duration-300 hover:-translate-y-0.5 hover:shadow-card-hover sm:gap-4 ${rowCls}`}
                   >
                     <div className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl text-lg font-extrabold tabular-nums ${badgeCls}`}>
@@ -208,8 +212,14 @@ export function Leaderboard({ initial }: { initial: Both }) {
                         Punkte
                       </div>
                     </div>
-                    <span className="ml-1 shrink-0 text-xl text-ink-soft/40 transition-all group-hover:translate-x-0.5 group-hover:text-pitch">
-                      ›
+                    <span
+                      className={`ml-1 shrink-0 text-xl transition-all ${
+                        pending
+                          ? "animate-pulse text-pitch"
+                          : "text-ink-soft/40 group-hover:translate-x-0.5 group-hover:text-pitch"
+                      }`}
+                    >
+                      {pending ? "…" : "›"}
                     </span>
                   </button>
                 </li>
@@ -228,12 +238,12 @@ export function Leaderboard({ initial }: { initial: Both }) {
     );
   }
 
-  function renderDetail(row: StandingRow) {
+  function renderDetail() {
     return (
-      <div className="space-y-5">
+      <div className="space-y-5 pl-px">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => go({ mode: "list" })}
+            onClick={() => setMode("list")}
             className="btn-ghost shrink-0 !px-3 !py-1.5"
             aria-label="Zurück zur Rangliste"
           >
@@ -244,12 +254,12 @@ export function Leaderboard({ initial }: { initial: Both }) {
               Tipps · {scope === "group_e" ? "Gruppe E" : "Alle Spiele"}
             </div>
             <h1 className="mt-0.5 truncate text-2xl font-extrabold tracking-tight">
-              {row.name}
+              {row?.name}
             </h1>
           </div>
           <div className="ml-auto shrink-0 text-right">
             <div className="font-display text-2xl font-extrabold leading-none tabular-nums text-ink">
-              {row.points}
+              {row?.points}
             </div>
             <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-soft">
               Punkte
@@ -257,16 +267,15 @@ export function Leaderboard({ initial }: { initial: Both }) {
           </div>
         </div>
 
-        {tipsLoading && <p className="text-ink-soft">Lädt Tipps…</p>}
         {tipsError && (
           <p className="text-red-600">Tipps konnten nicht geladen werden.</p>
         )}
-        {tips && tips.length === 0 && (
+        {!tipsError && tips && tips.length === 0 && (
           <p className="text-ink-soft">Noch keine ausgewerteten Spiele.</p>
         )}
 
-        {tips && tips.length > 0 && (
-          <ol className="space-y-2.5">
+        {!tipsError && tips && tips.length > 0 && (
+          <ol key={row?.userId} className="space-y-2.5">
             {tips.map((t, i) => {
               const points = t.points ?? 0;
               const hasBet = t.betHome !== null && t.betAway !== null;
@@ -313,27 +322,24 @@ export function Leaderboard({ initial }: { initial: Both }) {
     );
   }
 
-  const currentAnim =
-    view.mode === "detail" ? "animate-slide-in-right" : "animate-slide-in-left";
-  const leavingAnim =
-    leaving?.mode === "list" ? "animate-slide-out-left" : "animate-slide-out-right";
-
   return (
-    <div className="relative overflow-hidden">
-      {leaving && (
-        <div
-          key={leaving.mode === "detail" ? `lv-d-${leaving.row.userId}` : "lv-list"}
-          className={`pointer-events-none absolute inset-x-0 top-0 ${leavingAnim}`}
-          aria-hidden
-        >
-          {leaving.mode === "list" ? renderList() : renderDetail(leaving.row)}
-        </div>
-      )}
+    <div
+      className="lb-shell relative overflow-hidden"
+      style={{ height, transition: `height ${SLIDE_MS}ms ${EASE}` }}
+    >
       <div
-        key={view.mode === "detail" ? `d-${view.row.userId}` : "list"}
-        className={started ? currentAnim : undefined}
+        className="lb-track flex w-[200%] items-start"
+        style={{
+          transform: mode === "detail" ? "translateX(-50%)" : "translateX(0)",
+          transition: `transform ${SLIDE_MS}ms ${EASE}`,
+        }}
       >
-        {view.mode === "list" ? renderList() : renderDetail(view.row)}
+        <div ref={listRef} className="w-1/2">
+          {renderList()}
+        </div>
+        <div ref={detailRef} className="w-1/2" aria-hidden={mode === "list"}>
+          {row ? renderDetail() : <div />}
+        </div>
       </div>
     </div>
   );
