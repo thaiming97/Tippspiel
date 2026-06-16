@@ -1,6 +1,11 @@
 "use client";
 
-import { useMemo, useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+
+// Vor dem Paint laufen (verhindert ein kurzes Aufblitzen des Namens, bevor die
+// Bälle kommen). Auf dem Server gibt es kein Layout -> dort useEffect.
+const useIsomorphicLayoutEffect =
+  typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 // Dichtes Raster aus überlappenden Bällen -> die Karte wird komplett gefüllt,
 // kein Hintergrund mehr sichtbar.
@@ -91,7 +96,9 @@ export function LeaderCelebration({ leaderName }: { leaderName: string }) {
   }
 
   // Auto-Trigger bei Führungswechsel (inkl. erstem Besuch in diesem Browser).
-  useEffect(() => {
+  // Als Layout-Effect, damit der Name gar nicht erst sichtbar wird, bevor die
+  // Bälle einlaufen.
+  useIsomorphicLayoutEffect(() => {
     if (!leaderName) return;
     const key = "wm_last_leader";
     const prev = localStorage.getItem(key);
