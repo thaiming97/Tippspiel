@@ -78,3 +78,14 @@ export interface StandingRow {
   /** Anzahl gewerteter (beendeter) Spiele. */
   played: number;
 }
+
+/** Eine Chat-Nachricht im Community-Bereich. */
+export interface ChatMessage {
+  id: string;
+  /** Verfasser (User-ID) – zum Erkennen eigener Nachrichten. */
+  userId: string;
+  /** Anzeigename zum Zeitpunkt des Schreibens (denormalisiert). */
+  name: string;
+  text: string;
+  createdAt: number;
+}

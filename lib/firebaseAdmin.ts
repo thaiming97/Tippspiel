@@ -55,6 +55,8 @@ export const Collections = {
   bets: "bets",
   // Vorberechnete Ranglisten (1 Dokument statt der ganzen DB pro Aufruf).
   standings: "standings",
+  // Chat-Nachrichten des Community-Bereichs.
+  messages: "messages",
 } as const;
 
 /** Doc-ID des einzigen Ranglisten-Caches in der Collection "standings". */
