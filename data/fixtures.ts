@@ -31,6 +31,14 @@ export const SEED_FIXTURES: SeedMatch[] = [
   m("England", "Kroatien", "Gruppe L", "2026-06-17T20:00:00Z"),
   m("Ghana", "Panama", "Gruppe L", "2026-06-17T23:00:00Z"),
   m("Usbekistan", "Kolumbien", "Gruppe K", "2026-06-18T02:00:00Z"),
+
+  // ---------------- Finale, 19.07.2026 ----------------
+  // Die K.-o.-Spiele bis zum Spiel um Platz 3 liefert der automatische Feed
+  // (football-data.org) als Platzhalter mit. Das Finale fehlt dort jedoch,
+  // weshalb der Turnierbaum sonst beim Spiel um Platz 3 endet. Wir legen es
+  // deshalb hier fest als Platzhalter an (TBD – TBD). Die Mannschaften füllen
+  // sich, sobald die Finalisten feststehen, das Ergebnis kommt per Sync/Admin.
+  m("TBD", "TBD", "Finale", "2026-07-19T19:00:00Z"),
 ];
 
 function m(

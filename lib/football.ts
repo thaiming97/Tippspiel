@@ -36,6 +36,8 @@ function prettyStage(raw: string | undefined, group: string | null): string {
   switch (raw) {
     case "GROUP_STAGE":
       return "Gruppenphase";
+    case "LAST_32":
+      return "Sechzehntelfinale";
     case "LAST_16":
       return "Achtelfinale";
     case "QUARTER_FINALS":
