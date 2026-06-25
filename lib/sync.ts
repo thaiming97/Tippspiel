@@ -96,7 +96,13 @@ export async function syncFromInternet(): Promise<SyncResult> {
   const byPair = new Map<string, string>();
   for (const m of byId.values()) {
     if (m.externalId) byExternal.set(m.externalId, m.id);
-    byPair.set(pairKey(m.homeTeam, m.awayTeam), m.id);
+    // Platzhalter (TBD – TBD, z.B. noch offene K.-o.-Spiele oder das fest
+    // angelegte Finale) NICHT über die Mannschafts-Paarung indizieren: ihr
+    // Paar-Schlüssel ist immer "tbd|tbd" und würde sonst alle offenen Spiele
+    // miteinander verwechseln (und das geseedete Finale überschreiben).
+    if (!isPlaceholder(m.homeTeam) && !isPlaceholder(m.awayTeam)) {
+      byPair.set(pairKey(m.homeTeam, m.awayTeam), m.id);
+    }
   }
 
   let updated = 0;
@@ -111,8 +117,13 @@ export async function syncFromInternet(): Promise<SyncResult> {
     const homeDE = translateTeam(ext.homeTeam);
     const awayDE = translateTeam(ext.awayTeam);
 
+    // Treffer zuerst über die stabile externe ID, sonst über die Paarung –
+    // letzteres aber nur, wenn beide Mannschaften feststehen (siehe oben).
     const matchId =
-      byExternal.get(ext.externalId) ?? byPair.get(pairKey(homeDE, awayDE));
+      byExternal.get(ext.externalId) ??
+      (isPlaceholder(homeDE) || isPlaceholder(awayDE)
+        ? undefined
+        : byPair.get(pairKey(homeDE, awayDE)));
 
     if (matchId) {
       // Bestehendes Spiel aktualisieren – Namen/Stage beibehalten.
@@ -182,4 +193,14 @@ export async function syncFromInternet(): Promise<SyncResult> {
   if (resultsChanged) await recomputePoints();
 
   return { fetched: external.length, updated, created, finished, recomputed: resultsChanged };
+}
+
+/**
+ * Platzhalter-Mannschaft ohne feststehenden Gegner: „TBD" (oder leer). Solche
+ * Teams dürfen nicht über die Paarung gematcht werden, weil ihr Schlüssel nicht
+ * eindeutig ist.
+ */
+function isPlaceholder(team: string): boolean {
+  const key = teamKey(team);
+  return key === "" || key === "tbd";
 }
