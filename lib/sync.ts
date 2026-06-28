@@ -126,20 +126,45 @@ export async function syncFromInternet(): Promise<SyncResult> {
         : byPair.get(pairKey(homeDE, awayDE)));
 
     if (matchId) {
-      // Bestehendes Spiel aktualisieren – Namen/Stage beibehalten.
+      // Bestehendes Spiel aktualisieren.
       const cur = byId.get(matchId)!;
-      const sameOrientation = teamKey(cur.homeTeam) === teamKey(homeDE);
-      const homeScore = sameOrientation ? ext.homeScore : ext.awayScore;
-      const awayScore = sameOrientation ? ext.awayScore : ext.homeScore;
 
+      // K.o.-Spiele werden zunächst als Platzhalter ("TBD") angelegt. Sobald die
+      // echten Teams feststehen, übernehmen wir Namen UND Reihenfolge direkt aus
+      // der API – sonst blieben sie für immer "TBD". Bei bereits benannten
+      // Spielen bleibt die (ggf. manuell gesetzte) Reihenfolge erhalten; die Tore
+      // werden dann passend zugeordnet.
+      const fillInTeams =
+        (isPlaceholder(cur.homeTeam) || isPlaceholder(cur.awayTeam)) &&
+        !isPlaceholder(homeDE) &&
+        !isPlaceholder(awayDE);
+
+      let homeTeam = cur.homeTeam;
+      let awayTeam = cur.awayTeam;
+      let homeScore: number | null;
+      let awayScore: number | null;
+
+      if (fillInTeams) {
+        homeTeam = homeDE;
+        awayTeam = awayDE;
+        homeScore = ext.homeScore;
+        awayScore = ext.awayScore;
+      } else {
+        const sameOrientation = teamKey(cur.homeTeam) === teamKey(homeDE);
+        homeScore = sameOrientation ? ext.homeScore : ext.awayScore;
+        awayScore = sameOrientation ? ext.awayScore : ext.homeScore;
+      }
+
+      const namesDiff = homeTeam !== cur.homeTeam || awayTeam !== cur.awayTeam;
       // Ergebnis-relevante Änderung? (zählt für die Punkte-Neuberechnung)
       const resultDiff =
         cur.status !== ext.status ||
         cur.homeScore !== homeScore ||
         cur.awayScore !== awayScore;
-      // Schreib-relevante Änderung? (zusätzlich Anstoß/externe ID)
+      // Schreib-relevante Änderung? (zusätzlich Namen/Anstoß/externe ID)
       const writeDiff =
         resultDiff ||
+        namesDiff ||
         cur.kickoff !== ext.kickoff ||
         cur.externalId !== ext.externalId;
 
@@ -152,6 +177,7 @@ export async function syncFromInternet(): Promise<SyncResult> {
             kickoff: ext.kickoff,
             homeScore,
             awayScore,
+            ...(namesDiff ? { homeTeam, awayTeam } : {}),
           },
           { merge: true },
         );
