@@ -1,0 +1,69 @@
+' ==========================================================================
+'  OPTIONAL, aber empfohlen - verhindert das E+ schon beim Eintippen.
+'
+'  Einbau: Alt+F11 -> links im Projektbaum doppelklick auf
+'          "DieseArbeitsmappe" (bzw. "ThisWorkbook")
+'          -> diesen Code komplett dort hinein kopieren.
+'
+'  Wirkung: sobald jemand eine Sendungsnummer als Zahl eingibt oder
+'  einfuegt, wird die Zelle sofort auf Text gestellt und die Nummer
+'  ausgeschrieben (kein 1,23457E+19 mehr). Bei mehr als 15 Stellen
+'  kommt eine Warnung, weil Excel dann schon Ziffern verloren hat.
+'
+'  Das hier ist KEINE Automatik im Sinne von "holt Daten". Es reagiert
+'  nur auf deine eigene Eingabe und macht keinerlei Internetzugriff.
+' ==========================================================================
+
+Private Sub Workbook_SheetChange(ByVal Sh As Object, ByVal Target As Range)
+    If Sh.Name <> "Paket-Liste" Then Exit Sub
+    If Target.Cells.CountLarge > 2000 Then Exit Sub
+
+    ' Spalte "Sendungsnummer" ueber die Ueberschrift suchen
+    Dim spalte As Long, c As Long, h As String, lastCol As Long
+    lastCol = Sh.Cells(1, Sh.Columns.Count).End(xlToLeft).Column
+    For c = 1 To lastCol
+        h = LCase$(Trim$(CStr(Sh.Cells(1, c).Value)))
+        If InStr(h, "sendungsnummer") > 0 Then
+            spalte = c
+            Exit For
+        End If
+    Next c
+    If spalte = 0 Then Exit Sub
+
+    Dim zelle As Range, s As String, warnung As String
+
+    ' ab hier Events aus -> im Fehlerfall unbedingt wieder an,
+    ' sonst reagiert Excel danach auf gar keine Aenderung mehr
+    On Error GoTo Aufraeumen
+
+    For Each zelle In Target.Cells
+        If zelle.Column = spalte And zelle.Row > 1 Then
+            If Not IsError(zelle.Value2) Then
+                Select Case VarType(zelle.Value2)
+                    Case vbDouble, vbSingle, vbLong, vbInteger, vbCurrency, vbDecimal
+                        s = Format$(zelle.Value2, "0")
+                        Application.EnableEvents = False
+                        zelle.NumberFormat = "@"
+                        zelle.Value = s
+                        Application.EnableEvents = True
+                        If Len(s) > 15 Then
+                            warnung = warnung & vbLf & "  Zeile " & zelle.Row & ": " & s
+                        End If
+                End Select
+            End If
+        End If
+    Next zelle
+
+Aufraeumen:
+    Application.EnableEvents = True
+
+    If warnung <> "" Then
+        MsgBox "Diese Sendungsnummer wurde als ZAHL eingegeben und ist laenger" & vbLf & _
+               "als 15 Stellen. Excel hat dabei bereits Ziffern gerundet bzw." & vbLf & _
+               "fuehrende Nullen entfernt - die Nummer stimmt so nicht mehr:" & vbLf & _
+               warnung & vbLf & vbLf & _
+               "Bitte die Nummer neu eintragen. Die Zelle steht jetzt auf Text," & vbLf & _
+               "ab jetzt bleibt sie unveraendert stehen.", _
+               vbExclamation, "Paket-Tracking"
+    End If
+End Sub
