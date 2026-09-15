@@ -83,6 +83,12 @@ export interface ResponseDoc {
   dates: Record<string, Vote>;
   /** IDs der gewählten Optionen (Mehrfachauswahl). */
   choices: string[];
+  /**
+   * true = „bin komplett raus": kann an keinem Termin. Dann sind `dates` und
+   * `choices` leer, die Antwort zählt aber als abgegeben – so weiß der
+   * Organisator, dass er nicht auf diese Person warten muss.
+   */
+  declined: boolean;
   /** Freiwillige Anmerkung, z.B. „erst ab 19 Uhr". */
   comment: string;
   createdAt: number;

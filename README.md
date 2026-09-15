@@ -14,6 +14,10 @@ Umfragen anlegt und auswertet, meldet sich als **Organisator** an.
 - **Abstimmen ohne Anmeldung**: je Termin **Ja / Wenn nötig / Nein**,
   Mehrfachauswahl bei den Optionen, optionale Anmerkung. Derselbe Name
   bearbeitet die eigene Antwort statt eine zweite Zeile anzulegen.
+- **Schnellwahl**: „Kann immer" setzt alle Termine auf Ja, „Bin komplett raus"
+  meldet für alle Termine ab. Eine Absage zählt als abgegebene Antwort und
+  wird in der Übersicht ausgewiesen – der Organisator weiß dann, dass er auf
+  diese Person nicht warten muss.
 - **Auswertung im Doodle-Stil**: beste Termine nach Zusagen, Stimmen je Option,
   vollständige Übersichts-Tabelle.
 - **Steuerung**: Abstimmung schließen, Stand vor den Teilnehmern verbergen,

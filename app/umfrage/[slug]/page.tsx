@@ -32,6 +32,7 @@ export default async function PollPage({ params }: { params: { slug: string } })
   if (!poll) notFound();
 
   const responses = await getResponses(poll.id);
+  const declined = responses.filter((r) => r.declined).length;
   const festive = poll.theme === "weihnachten";
   const finalChoice = choiceById(poll, poll.finalChoice);
 
@@ -43,6 +44,7 @@ export default async function PollPage({ params }: { params: { slug: string } })
         name: r.name,
         dates: r.dates,
         choices: r.choices,
+        declined: r.declined,
         comment: r.comment,
       };
     }
@@ -83,6 +85,12 @@ export default async function PollPage({ params }: { params: { slug: string } })
             <span className="rounded-full bg-ff-navy px-3 py-1.5 text-white">
               👥 {responses.length}{" "}
               {responses.length === 1 ? "Antwort" : "Antworten"}
+              {declined > 0 && (
+                <span className="font-medium text-white/70">
+                  {" "}
+                  · {declined} {declined === 1 ? "Absage" : "Absagen"}
+                </span>
+              )}
             </span>
           )}
         </div>

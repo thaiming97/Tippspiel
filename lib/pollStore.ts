@@ -77,6 +77,7 @@ function toResponse(id: string, data: Partial<ResponseDoc>): ResponseDoc {
     name: data.name ?? id,
     dates: data.dates ?? {},
     choices: data.choices ?? [],
+    declined: data.declined ?? false,
     comment: data.comment ?? "",
     createdAt: data.createdAt ?? 0,
     updatedAt: data.updatedAt ?? 0,
@@ -294,6 +295,8 @@ export interface ResponseInput {
   /** Nur „yes"/„maybe" – „no" wird als fehlender Schlüssel gespeichert. */
   dates: Record<string, Exclude<Vote, "no">>;
   choices: string[];
+  /** „bin komplett raus" – schlägt Termine und Auswahl aus. */
+  declined: boolean;
   comment: string;
 }
 
@@ -319,16 +322,19 @@ export async function saveResponse(
 
   // Nur bekannte Termine/Optionen übernehmen – das Formular ist öffentlich.
   const dates: Record<string, Vote> = {};
-  for (const date of poll.dates) {
-    const vote = input.dates[date];
-    if (vote === "yes" || vote === "maybe") dates[date] = vote;
+  const choices: string[] = [];
+  if (!input.declined) {
+    for (const date of poll.dates) {
+      const vote = input.dates[date];
+      if (vote === "yes" || vote === "maybe") dates[date] = vote;
+    }
+    if (Object.keys(dates).length === 0) {
+      throw new Error("Bitte wähle mindestens einen Termin aus.");
+    }
+    for (const choice of poll.choices) {
+      if (input.choices.includes(choice.id)) choices.push(choice.id);
+    }
   }
-  if (Object.keys(dates).length === 0) {
-    throw new Error("Bitte wähle mindestens einen Termin aus.");
-  }
-  const choices = poll.choices
-    .filter((c) => input.choices.includes(c.id))
-    .map((c) => c.id);
 
   const ref = responses(slug).doc(id);
   const before = await ref.get();
@@ -344,6 +350,7 @@ export async function saveResponse(
     name,
     dates,
     choices,
+    declined: input.declined,
     comment: input.comment.trim().slice(0, MAX_COMMENT_LENGTH),
     createdAt: before.exists
       ? ((before.data() as Partial<ResponseDoc>).createdAt ?? now)
@@ -431,6 +438,7 @@ export async function seedTemplate(template: PollTemplate): Promise<SeedResult> 
         name: (d.name as string) ?? doc.id,
         dates: (d.dates as Record<string, Vote>) ?? {},
         choices: (d.restaurants as string[]) ?? [],
+        declined: false,
         comment: (d.comment as string) ?? "",
         createdAt: (d.createdAt as number) ?? Date.now(),
         updatedAt: (d.updatedAt as number) ?? Date.now(),

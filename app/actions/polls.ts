@@ -66,10 +66,17 @@ export async function submitResponseAction(
   }
 
   const choices = formData.getAll("choice").map(String);
+  const declined = formData.get("declined") === "on";
   const comment = String(formData.get("comment") ?? "").slice(0, MAX_COMMENT_LENGTH);
 
   try {
-    const { updated } = await saveResponse(slug, { name, dates, choices, comment });
+    const { updated } = await saveResponse(slug, {
+      name,
+      dates,
+      choices,
+      declined,
+      comment,
+    });
     revalidatePoll(slug);
     return {
       ok: updated
