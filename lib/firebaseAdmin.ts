@@ -57,7 +57,14 @@ export const Collections = {
   standings: "standings",
   // Chat-Nachrichten des Community-Bereichs.
   messages: "messages",
+  // Antworten der Weihnachtsessen-Umfrage (Doc-ID = normalisierter Name).
+  dinnerResponses: "dinnerResponses",
+  // Einstellungen der Weihnachtsessen-Umfrage (ein Dokument).
+  dinnerSettings: "dinnerSettings",
 } as const;
 
 /** Doc-ID des einzigen Ranglisten-Caches in der Collection "standings". */
 export const STANDINGS_DOC = "current";
+
+/** Doc-ID der Einstellungen in der Collection "dinnerSettings". */
+export const DINNER_SETTINGS_DOC = "current";

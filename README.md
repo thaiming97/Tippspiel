@@ -22,6 +22,8 @@ tippen Spielergebnisse, Punkte werden automatisch vergeben, und eine
   Spiele anlegen, Ergebnisse pflegen, Sync starten.
 - **Ergebnisse automatisch aus dem Internet** über [football-data.org]
   – per Knopfdruck im Admin oder zeitgesteuert per Cron.
+- **🎄 Weihnachtsessen-Umfrage** unter `/weihnachtsessen` – die Doodle-Alternative
+  der Abteilung: **ohne Anmeldung** erreichbar, Auswertung im Admin-Bereich.
 
 ## Tech-Stack
 
@@ -88,6 +90,41 @@ npm run dev            # http://localhost:3000
 Mit den Admin-Zugangsdaten anmelden → unter **Admin** weitere Benutzer anlegen
 und (falls Token gesetzt) den Sync starten, um den vollständigen Spielplan und
 Live-Ergebnisse zu laden.
+
+## 🎄 Weihnachtsessen-Umfrage
+
+Terminabstimmung für das Abteilungs-Weihnachtsessen – als Ersatz für ein
+kostenpflichtiges Doodle. Gestaltet mit dem Logo von **FF Entertainment**
+(`public/ff-entertainment.jpg`).
+
+| Seite | Zweck | Zugang |
+| --- | --- | --- |
+| `/weihnachtsessen` | abstimmen + aktueller Stand | **öffentlich, ohne Anmeldung** |
+| `/admin/weihnachtsessen` | auswerten, Termin festlegen, Antworten löschen | nur Admins |
+
+**Für die Kollegen:** Link teilen (im Admin-Bereich gibt es dafür einen
+Knopf „Link kopieren"), Namen eintragen, je Termin **Ja / Wenn nötig / Nein**
+wählen und ankreuzen, welche Restaurants in Frage kommen. Wer denselben Namen
+noch einmal eingibt, bearbeitet seine eigene Antwort – es entsteht keine zweite
+Zeile.
+
+**Für den Organisator:** Im Admin-Bereich stehen die besten Termine (sortiert
+nach Zusagen), die Restaurant-Wahl und die vollständige Übersicht. Dort lassen
+sich die Abstimmung schließen, der Stand vor den Teilnehmern verbergen und der
+endgültige Termin samt Restaurant und Hinweis festlegen – das erscheint dann
+oben auf der öffentlichen Seite.
+
+Termine und Restaurants stehen in `lib/dinner.ts`:
+
+- `DINNER_RANGE` – Zeitraum (aktuell 12.11.–18.12.), daraus werden **alle
+  Donnerstage und Freitage** erzeugt.
+- `RESTAURANTS` – die Auswahl (Krone Unsleben, Braunsmühle Bischofsheim,
+  Brückenschenke Wülfershausen).
+
+Gespeichert wird in den Firestore-Sammlungen `dinnerResponses` (eine Antwort je
+normalisiertem Namen) und `dinnerSettings`. Wie im restlichen Projekt läuft der
+Zugriff nur serverseitig über das Admin SDK; die Antworten liegen im Next.js
+Data Cache und werden bei jeder Änderung gezielt entwertet.
 
 ## Automatischer Ergebnis-Sync
 
