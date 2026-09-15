@@ -117,7 +117,7 @@ export function DinnerSettingsForm({ settings }: { settings: DinnerSettingsDoc }
           name="note"
           className="input"
           maxLength={300}
-          placeholder="z.B. Treffpunkt 19:00 Uhr, Menüwahl bitte bis 5.12."
+          placeholder="z.B. Treffpunkt 19:00 Uhr am Eingang"
           defaultValue={settings.note}
         />
         <p className="mt-1.5 text-xs text-ink-soft">
