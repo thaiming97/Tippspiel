@@ -13,6 +13,7 @@ import {
   cleanDates,
   nameKey,
   slugify,
+  type PollTemplate,
 } from "./polls";
 import type { PollChoice, PollDoc, PollTheme, ResponseDoc, Vote } from "./types";
 
@@ -348,4 +349,85 @@ export async function deleteResponse(slug: string, id: string): Promise<void> {
   await responses(slug).doc(id).delete();
   revalidateTag(pollTag(slug));
   revalidateTag(POLLS_TAG);
+}
+
+// --- Vorlage anlegen -----------------------------------------------------
+
+/** Was beim Anlegen einer Vorlage passiert ist. */
+export interface SeedResult {
+  created: boolean;
+  /** Übernommene Antworten aus der alten, fest verdrahteten Fassung. */
+  migrated: number;
+}
+
+/**
+ * Legt eine Umfrage aus einer Vorlage an – mehrfach aufrufbar: Eine bereits
+ * vorhandene Umfrage bleibt unangetastet.
+ *
+ * Zusätzlich werden Antworten und Einstellungen der alten Weihnachtsessen-
+ * Fassung übernommen (Sammlungen `dinnerResponses` / `dinnerSettings`), damit
+ * niemand zweimal abstimmen muss.
+ */
+export async function seedTemplate(template: PollTemplate): Promise<SeedResult> {
+  const ref = polls().doc(template.slug);
+  const existing = await ref.get();
+  let created = false;
+
+  if (!existing.exists) {
+    const now = Date.now();
+    const poll: Omit<PollDoc, "id"> = {
+      title: template.title,
+      description: template.description,
+      theme: template.theme,
+      dates: cleanDates(template.dates),
+      choicesTitle: template.choicesTitle,
+      choices: template.choices,
+      open: true,
+      showResults: true,
+      finalDate: null,
+      finalChoice: null,
+      note: "",
+      createdAt: now,
+      updatedAt: now,
+    };
+    await ref.set(poll);
+    created = true;
+  }
+
+  // Frühere Fassung übernehmen, falls es sie in diesem Projekt noch gibt.
+  let migrated = 0;
+  if (template.slug === "weihnachtsessen") {
+    const oldSettings = await db().collection("dinnerSettings").doc("current").get();
+    if (oldSettings.exists && created) {
+      const old = oldSettings.data() as Record<string, unknown>;
+      await ref.update({
+        open: (old.open as boolean) ?? true,
+        showResults: (old.showResults as boolean) ?? true,
+        finalDate: (old.finalDate as string | null) ?? null,
+        finalChoice: (old.finalRestaurant as string | null) ?? null,
+        note: (old.note as string) ?? "",
+        updatedAt: Date.now(),
+      });
+    }
+
+    const oldResponses = await db().collection("dinnerResponses").get();
+    for (const doc of oldResponses.docs) {
+      const target = ref.collection(RESPONSES).doc(doc.id);
+      if ((await target.get()).exists) continue;
+      const d = doc.data() as Record<string, unknown>;
+      await target.set({
+        name: (d.name as string) ?? doc.id,
+        dates: (d.dates as Record<string, Vote>) ?? {},
+        choices: (d.restaurants as string[]) ?? [],
+        comment: (d.comment as string) ?? "",
+        createdAt: (d.createdAt as number) ?? Date.now(),
+        updatedAt: (d.updatedAt as number) ?? Date.now(),
+      });
+      migrated += 1;
+    }
+  }
+
+  revalidateTag(POLLS_TAG);
+  revalidateTag(pollTag(template.slug));
+  return { created, migrated };
 }

@@ -6,6 +6,7 @@ import { requireAdmin } from "@/lib/auth";
 import {
   MAX_COMMENT_LENGTH,
   MAX_NAME_LENGTH,
+  WEIHNACHTSESSEN,
   buildDates,
   cleanDates,
 } from "@/lib/polls";
@@ -15,6 +16,7 @@ import {
   deleteResponse,
   getPoll,
   saveResponse,
+  seedTemplate,
   updatePoll,
   updatePollSettings,
   type PollInput,
@@ -200,4 +202,16 @@ export async function deleteResponseAction(formData: FormData): Promise<void> {
   if (!slug || !id) return;
   await deleteResponse(slug, id);
   revalidatePoll(slug);
+}
+
+/**
+ * Legt die Weihnachtsessen-Umfrage aus der Vorlage an (Termine und
+ * Restaurants stehen in `lib/polls.ts`) und übernimmt Antworten aus der
+ * früheren Fassung. Mehrfach aufrufbar.
+ */
+export async function seedWeihnachtsessenAction(): Promise<void> {
+  await requireAdmin();
+  await seedTemplate(WEIHNACHTSESSEN);
+  revalidatePoll(WEIHNACHTSESSEN.slug);
+  redirect(`/admin/umfragen/${WEIHNACHTSESSEN.slug}`);
 }

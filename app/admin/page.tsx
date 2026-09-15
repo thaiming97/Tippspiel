@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CopyLinkButton } from "@/components/poll/CopyLinkButton";
-import { dateRangeLabel } from "@/lib/polls";
+import { seedWeihnachtsessenAction } from "@/app/actions/polls";
+import { WEIHNACHTSESSEN, dateRangeLabel, dayMonth } from "@/lib/polls";
 import { listPolls } from "@/lib/pollStore";
 
 export const dynamic = "force-dynamic";
@@ -8,6 +9,8 @@ export const dynamic = "force-dynamic";
 /** Übersicht aller Umfragen für die Organisatoren. */
 export default async function AdminHome() {
   const polls = await listPolls();
+  // Vorlage nur anbieten, solange es die Umfrage noch nicht gibt.
+  const showTemplate = !polls.some(({ poll }) => poll.id === WEIHNACHTSESSEN.slug);
 
   return (
     <div className="space-y-6">
@@ -32,6 +35,34 @@ export default async function AdminHome() {
           </Link>
         </div>
       </header>
+
+      {showTemplate && (
+        <form
+          action={seedWeihnachtsessenAction}
+          className="rounded-[2rem] border border-ff-orange/25 bg-ff-orange/[0.05] p-5"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="font-display text-lg font-extrabold text-ff-navy">
+                🎄 {WEIHNACHTSESSEN.title}
+              </p>
+              <p className="mt-1 text-sm text-ink-soft">
+                Fertige Vorlage: {WEIHNACHTSESSEN.dates.length} Termine (jeden
+                Do und Fr von {dayMonth(WEIHNACHTSESSEN.dates[0])} bis{" "}
+                {dayMonth(
+                  WEIHNACHTSESSEN.dates[WEIHNACHTSESSEN.dates.length - 1],
+                )}
+                ),{" "}
+                {WEIHNACHTSESSEN.choices.map((c) => c.name).join(", ")} –
+                weihnachtliche Optik. Frühere Antworten werden übernommen.
+              </p>
+            </div>
+            <button className="inline-flex flex-none items-center justify-center rounded-full bg-ff-orange-gradient px-5 py-2.5 text-sm font-bold text-white shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover">
+              Jetzt anlegen
+            </button>
+          </div>
+        </form>
+      )}
 
       {polls.length === 0 ? (
         <div className="card border-dashed border-ink/15 bg-white/70 text-center">

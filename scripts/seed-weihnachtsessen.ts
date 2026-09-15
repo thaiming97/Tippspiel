@@ -12,9 +12,9 @@ config({ path: ".env.local" });
 config();
 import { applicationDefault, cert, getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
-import { buildDates, slugify } from "../lib/polls";
+import { WEIHNACHTSESSEN } from "../lib/polls";
 
-const SLUG = "weihnachtsessen";
+const SLUG = WEIHNACHTSESSEN.slug;
 
 function init() {
   if (getApps().length) return;
@@ -33,14 +33,8 @@ async function main() {
   const db = getFirestore();
   const ref = db.collection("polls").doc(SLUG);
 
-  const choices = [
-    { name: "Krone", hint: "Unsleben" },
-    { name: "Braunsmühle", hint: "Bischofsheim" },
-    { name: "Brückenschenke", hint: "Wülfershausen" },
-  ].map((c) => ({ id: slugify(c.name), name: c.name, hint: c.hint }));
-
-  // Jeden Donnerstag (4) und Freitag (5) im Zeitraum.
-  const dates = buildDates("2026-11-12", "2026-12-18", [4, 5]);
+  const { title, description, theme, dates, choicesTitle, choices } =
+    WEIHNACHTSESSEN;
 
   const existing = await ref.get();
   if (existing.exists) {
@@ -48,12 +42,11 @@ async function main() {
   } else {
     const now = Date.now();
     await ref.set({
-      title: "Weihnachtsessen der Abteilung",
-      description:
-        "Wir suchen Termin und Restaurant. Trag einfach ein, wann du kannst – Mehrfachauswahl ausdrücklich erwünscht.",
-      theme: "weihnachten",
+      title,
+      description,
+      theme,
       dates,
-      choicesTitle: "Wo soll's hingehen?",
+      choicesTitle,
       choices,
       open: true,
       showResults: true,

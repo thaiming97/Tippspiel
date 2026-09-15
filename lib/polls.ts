@@ -6,7 +6,7 @@
  * importiert werden kann.
  */
 
-import type { PollChoice, PollDoc, ResponseDoc, Vote } from "./types";
+import type { PollChoice, PollDoc, PollTheme, ResponseDoc, Vote } from "./types";
 
 // --- Grenzen -------------------------------------------------------------
 
@@ -178,6 +178,39 @@ export function dateRangeLabel(dates: string[]): string {
   if (dates.length === 1) return formatDate(dates[0]);
   return `${dayMonth(dates[0])} – ${dayMonth(dates[dates.length - 1])}`;
 }
+
+// --- Fertige Vorlage -----------------------------------------------------
+
+/** Bauplan einer Umfrage, die per Knopfdruck angelegt werden kann. */
+export interface PollTemplate {
+  slug: string;
+  title: string;
+  description: string;
+  theme: PollTheme;
+  dates: string[];
+  choicesTitle: string;
+  choices: PollChoice[];
+}
+
+/**
+ * Das Weihnachtsessen der Abteilung: jeder Donnerstag und Freitag vom
+ * 12.11. bis 18.12., dazu die drei Restaurants. Liegt hier, damit der
+ * Admin-Knopf und `npm run seed:weihnachtsessen` dieselben Daten anlegen.
+ */
+export const WEIHNACHTSESSEN: PollTemplate = {
+  slug: "weihnachtsessen",
+  title: "Weihnachtsessen der Abteilung",
+  description:
+    "Wir suchen Termin und Restaurant. Trag einfach ein, wann du kannst – Mehrfachauswahl ausdrücklich erwünscht.",
+  theme: "weihnachten",
+  dates: buildDates("2026-11-12", "2026-12-18", [4, 5]),
+  choicesTitle: "Wo soll's hingehen?",
+  choices: [
+    { id: "krone", name: "Krone", hint: "Unsleben" },
+    { id: "braunsmuehle", name: "Braunsmühle", hint: "Bischofsheim" },
+    { id: "brueckenschenke", name: "Brückenschenke", hint: "Wülfershausen" },
+  ],
+};
 
 // --- Antwort-Möglichkeiten ----------------------------------------------
 

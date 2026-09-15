@@ -78,11 +78,14 @@ npm run seed:weihnachtsessen      # optional: Weihnachtsessen-Umfrage anlegen
 npm run dev                       # http://localhost:3000
 ```
 
-`npm run seed:weihnachtsessen` legt die Umfrage „Weihnachtsessen der
-Abteilung" mit allen Donnerstagen und Freitagen vom 12.11. bis 18.12. sowie den
-drei Restaurants an und übernimmt Antworten aus der früheren, fest
-verdrahteten Fassung. Das Skript ist mehrfach aufrufbar und überschreibt eine
-bestehende Umfrage nicht.
+Die Weihnachtsessen-Umfrage gibt es als **fertige Vorlage** – entweder per
+Knopf „Jetzt anlegen" oben im Admin-Bereich (kein Terminal nötig) oder per
+`npm run seed:weihnachtsessen`. Beide Wege legen dieselbe Umfrage an (alle
+Donnerstage und Freitage vom 12.11. bis 18.12., die drei Restaurants,
+weihnachtliche Optik) und übernehmen Antworten aus der früheren, fest
+verdrahteten Fassung. Beide sind mehrfach aufrufbar und überschreiben eine
+bestehende Umfrage nicht. Die Vorlage selbst steht in `lib/polls.ts`
+(`WEIHNACHTSESSEN`).
 
 ## Deployment
 
