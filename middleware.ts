@@ -32,10 +32,13 @@ export async function middleware(req: NextRequest) {
   // Cron-Endpunkt schützt sich selbst per Secret.
   if (pathname.startsWith("/api/cron")) return NextResponse.next();
 
-  // Offene Bereiche komplett an der Anmelde-Logik vorbeileiten.
-  if (OPEN_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
-    return NextResponse.next();
-  }
+  // Offene Bereiche komplett an der Anmelde-Logik vorbeileiten. Die Wurzel
+  // wird ausdrücklich nur exakt verglichen – mit `startsWith("//")` hinge das
+  // Verhalten sonst daran, wie der Server doppelte Schrägstriche normalisiert.
+  const isOpen = OPEN_PATHS.some((p) =>
+    p === "/" ? pathname === "/" : pathname === p || pathname.startsWith(`${p}/`),
+  );
+  if (isOpen) return NextResponse.next();
 
   const session = await readSession(req);
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));

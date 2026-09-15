@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { requireAdminPage } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import { CopyLinkButton } from "@/components/poll/CopyLinkButton";
 import { DeletePollForm } from "@/components/poll/DeletePollForm";
@@ -34,6 +35,9 @@ export default async function AdminPollPage({
 }: {
   params: { slug: string };
 }) {
+  // Nicht nur auf die Middleware verlassen (siehe requireAdminPage).
+  await requireAdminPage();
+
   const poll = await getPoll(params.slug);
   if (!poll) notFound();
 

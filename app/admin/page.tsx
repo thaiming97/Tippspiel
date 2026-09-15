@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { requireAdminPage } from "@/lib/auth";
 import { CopyLinkButton } from "@/components/poll/CopyLinkButton";
 import { seedWeihnachtsessenAction } from "@/app/actions/polls";
 import { WEIHNACHTSESSEN, dateRangeLabel, dayMonth } from "@/lib/polls";
@@ -8,6 +9,8 @@ export const dynamic = "force-dynamic";
 
 /** Übersicht aller Umfragen für die Organisatoren. */
 export default async function AdminHome() {
+  // Nicht nur auf die Middleware verlassen (siehe requireAdminPage).
+  await requireAdminPage();
   const polls = await listPolls();
   // Vorlage nur anbieten, solange es die Umfrage noch nicht gibt.
   const showTemplate = !polls.some(({ poll }) => poll.id === WEIHNACHTSESSEN.slug);

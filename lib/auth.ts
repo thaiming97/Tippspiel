@@ -1,5 +1,6 @@
 import "server-only";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
 import { SignJWT, jwtVerify } from "jose";
 import { db, Collections } from "./firebaseAdmin";
@@ -93,7 +94,21 @@ export async function getCurrentUser(): Promise<UserDoc | null> {
   return user;
 }
 
-/** Wirft, wenn kein Admin angemeldet ist – für API-Routen. */
+/**
+ * Für Admin-Seiten: leitet zum Login, wenn gerade kein Admin angemeldet ist.
+ *
+ * Die Middleware prüft nur den Rollen-Eintrag im Cookie. Wer zwischenzeitlich
+ * gelöscht oder zum Nicht-Admin gemacht wurde, hätte damit noch bis zum
+ * Ablauf des Cookies Leserechte. Diese Prüfung liest die Rolle frisch aus der
+ * Datenbank – deshalb steht sie auf jeder Admin-Seite.
+ */
+export async function requireAdminPage(): Promise<UserDoc> {
+  const user = await getCurrentUser();
+  if (!user || user.role !== "admin") redirect("/login");
+  return user;
+}
+
+/** Wirft, wenn kein Admin angemeldet ist – für Server-Aktionen. */
 export async function requireAdmin(): Promise<UserDoc> {
   const user = await getCurrentUser();
   if (!user || user.role !== "admin") {

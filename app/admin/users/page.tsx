@@ -1,4 +1,4 @@
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, requireAdminPage } from "@/lib/auth";
 import { listUsers } from "@/lib/admin";
 import { deleteUserAction } from "@/app/actions/admin";
 import { formatDateTime, formatRelative } from "@/lib/format";
@@ -8,6 +8,8 @@ import { ResetPasswordForm } from "@/components/admin/ResetPasswordForm";
 export const dynamic = "force-dynamic";
 
 export default async function AdminUsersPage() {
+  // Nicht nur auf die Middleware verlassen (siehe requireAdminPage).
+  await requireAdminPage();
   const me = await getCurrentUser();
   const users = await listUsers();
 
