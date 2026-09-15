@@ -61,6 +61,9 @@ export function PollResults({
   const choices = tallyChoices(poll.choices, responses);
   const shorts = choiceShorts(poll.choices);
   const comments = responses.filter((r) => r.comment);
+  // Wer komplett abgesagt hat, kann keine Option wählen – sonst wäre der
+  // Nenner der Auswahl-Balken zu groß.
+  const attending = responses.filter((r) => !r.declined).length;
 
   if (responses.length === 0) {
     return (
@@ -140,13 +143,13 @@ export function PollResults({
                       {r.votes}
                       <span className="font-medium text-ink-soft">
                         {" "}
-                        / {responses.length}
+                        / {attending}
                       </span>
                     </span>
                   </div>
                   <Bar
                     value={r.votes}
-                    max={responses.length}
+                    max={attending}
                     tone={i === 0 && r.votes > 0 ? "bg-ff-orange" : "bg-ff-orange/45"}
                   />
                 </li>
@@ -237,6 +240,11 @@ export function PollResults({
                   >
                     <span className="flex items-center gap-1.5">
                       <span className="truncate">{r.name}</span>
+                      {r.declined && (
+                        <span className="chip flex-none bg-ff-orange/10 text-ff-orange">
+                          Absage
+                        </span>
+                      )}
                       {admin && (
                         <DeleteResponseForm
                           slug={poll.id}

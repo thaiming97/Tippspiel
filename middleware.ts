@@ -2,13 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 
 const COOKIE_NAME = "wm_session";
-const PUBLIC_PATHS = ["/login"];
-/**
- * Offene Bereiche: ohne Anmeldung erreichbar UND ohne Umleitung für
- * Angemeldete. Umfragen soll jeder per Link öffnen können – ein Konto
- * braucht nur, wer Umfragen anlegt und auswertet.
- */
-const OPEN_PATHS = ["/", "/umfrage", "/weihnachtsessen"];
+/** Ohne Anmeldung erreichbar: anmelden und selbst registrieren. */
+const PUBLIC_PATHS = ["/login", "/registrieren"];
 
 async function readSession(req: NextRequest) {
   const token = req.cookies.get(COOKIE_NAME)?.value;
@@ -32,18 +27,17 @@ export async function middleware(req: NextRequest) {
   // Cron-Endpunkt schützt sich selbst per Secret.
   if (pathname.startsWith("/api/cron")) return NextResponse.next();
 
-  // Offene Bereiche komplett an der Anmelde-Logik vorbeileiten.
-  if (OPEN_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
-    return NextResponse.next();
-  }
-
   const session = await readSession(req);
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
 
   if (!session) {
     if (isPublic) return NextResponse.next();
+    // Ziel mitnehmen, damit ein geteilter Umfrage-Link nach dem Anmelden
+    // direkt aufgeht.
     const url = req.nextUrl.clone();
     url.pathname = "/login";
+    url.search = "";
+    url.searchParams.set("weiter", `${pathname}${req.nextUrl.search}`);
     return NextResponse.redirect(url);
   }
 
@@ -51,6 +45,8 @@ export async function middleware(req: NextRequest) {
   if (session.mustChangePassword && pathname !== "/change-password") {
     const url = req.nextUrl.clone();
     url.pathname = "/change-password";
+    url.search = "";
+    url.searchParams.set("weiter", pathname);
     return NextResponse.redirect(url);
   }
 

@@ -21,7 +21,7 @@ export interface UserDoc {
 }
 
 // ---------------------------------------------------------------------------
-// Umfragen (Termin- und Ortswahl, öffentlich ohne Anmeldung)
+// Umfragen (Termin- und Ortswahl, Antwort gehört einem Konto)
 // ---------------------------------------------------------------------------
 
 /** Antwort zu einem einzelnen Termin. */
@@ -69,12 +69,17 @@ export interface PollDoc {
 }
 
 /**
- * Eine abgegebene Antwort. Die Dokument-ID ist der normalisierte Name, damit
- * dieselbe Person ihre Antwort bearbeitet statt eine zweite anzulegen.
+ * Eine abgegebene Antwort. Die Dokument-ID ist die Benutzer-ID: jede Person
+ * hat je Umfrage genau eine Antwort und kann nur ihre eigene ändern.
  */
 export interface ResponseDoc {
   id: string;
-  /** Anzeigename, so wie eingegeben. */
+  /**
+   * Konto, dem die Antwort gehört. Leer bei Antworten aus der Zeit, in der
+   * ohne Anmeldung abgestimmt wurde – die kann nur der Organisator löschen.
+   */
+  userId: string;
+  /** Anzeigename des Kontos zum Zeitpunkt der Antwort (denormalisiert). */
   name: string;
   /**
    * Termin -> Stimme. „Nein" wird nicht gespeichert, ein fehlender
@@ -83,6 +88,12 @@ export interface ResponseDoc {
   dates: Record<string, Vote>;
   /** IDs der gewählten Optionen (Mehrfachauswahl). */
   choices: string[];
+  /**
+   * true = „bin komplett raus": kann an keinem Termin. Dann sind `dates` und
+   * `choices` leer, die Antwort zählt aber als abgegeben – so weiß der
+   * Organisator, dass er nicht auf diese Person warten muss.
+   */
+  declined: boolean;
   /** Freiwillige Anmerkung, z.B. „erst ab 19 Uhr". */
   comment: string;
   createdAt: number;

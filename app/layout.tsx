@@ -20,7 +20,7 @@ const body = Hanken_Grotesk({
 export const metadata: Metadata = {
   title: "FF Entertainment",
   description:
-    "Feli & Felix · Essen & Ausflüge – Termine abstimmen ohne Anmeldung.",
+    "Feli & Felix · Essen & Ausflüge – Termine gemeinsam abstimmen.",
 };
 
 export default async function RootLayout({
@@ -54,27 +54,25 @@ export default async function RootLayout({
               </span>
             </Link>
 
-            {loggedIn ? (
+            {loggedIn && (
               <div className="flex items-center gap-2">
-                <Link
-                  href="/admin"
-                  className="rounded-full px-3 py-1.5 text-sm font-semibold text-ff-navy transition hover:bg-ff-navy/[0.06]"
-                >
-                  Umfragen
-                </Link>
+                {session!.role === "admin" && (
+                  <Link
+                    href="/admin"
+                    className="rounded-full px-3 py-1.5 text-sm font-semibold text-ff-navy transition hover:bg-ff-navy/[0.06]"
+                  >
+                    Verwalten
+                  </Link>
+                )}
+                <span className="hidden text-sm font-medium text-ink-soft sm:inline">
+                  {session!.name}
+                </span>
                 <form action={logoutAction}>
                   <button className="rounded-full border border-ff-navy/15 bg-white px-3.5 py-1.5 text-sm font-medium text-ink transition hover:border-ff-navy/30">
                     Abmelden
                   </button>
                 </form>
               </div>
-            ) : (
-              <Link
-                href="/login"
-                className="rounded-full px-3 py-1.5 text-sm font-medium text-ink-soft transition hover:text-ink"
-              >
-                Organisator
-              </Link>
             )}
           </div>
         </header>

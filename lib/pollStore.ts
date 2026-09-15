@@ -11,6 +11,7 @@ import {
   MAX_RESPONSES,
   MAX_TITLE_LENGTH,
   cleanDates,
+  isSlug,
   nameKey,
   slugify,
   type PollTemplate,
@@ -37,8 +38,17 @@ function polls() {
   return db().collection(Collections.polls);
 }
 
+/**
+ * Dokument einer Umfrage. Der Slug kommt aus URL oder Formular, deshalb wird
+ * seine Form geprüft, bevor er als Dokument-ID verwendet wird.
+ */
+function pollDoc(slug: string) {
+  if (!isSlug(slug)) throw new Error("Diese Umfrage gibt es nicht (mehr).");
+  return polls().doc(slug);
+}
+
 function responses(slug: string) {
-  return polls().doc(slug).collection(RESPONSES);
+  return pollDoc(slug).collection(RESPONSES);
 }
 
 /** Ergänzt fehlende Felder – schützt vor älteren/teilweisen Dokumenten. */
@@ -64,9 +74,11 @@ function toPoll(id: string, data: Partial<PollDoc>): PollDoc {
 function toResponse(id: string, data: Partial<ResponseDoc>): ResponseDoc {
   return {
     id,
+    userId: data.userId ?? "",
     name: data.name ?? id,
     dates: data.dates ?? {},
     choices: data.choices ?? [],
+    declined: data.declined ?? false,
     comment: data.comment ?? "",
     createdAt: data.createdAt ?? 0,
     updatedAt: data.updatedAt ?? 0,
@@ -99,9 +111,11 @@ export async function listPolls(): Promise<PollSummary[]> {
 
 /** Eine Umfrage oder null, wenn der Slug nicht existiert. */
 export async function getPoll(slug: string): Promise<PollDoc | null> {
+  // Unpassende Slugs sind schlicht „nicht gefunden" – kein Fehler.
+  if (!isSlug(slug)) return null;
   return unstable_cache(
     async () => {
-      const snap = await polls().doc(slug).get();
+      const snap = await pollDoc(slug).get();
       if (!snap.exists) return null;
       return toPoll(snap.id, snap.data() as Partial<PollDoc>);
     },
@@ -166,7 +180,9 @@ function checkInput(input: PollInput): void {
 export async function createPoll(input: PollInput): Promise<string> {
   checkInput(input);
 
-  const base = slugify(input.title) || "umfrage";
+  // Etwas Luft lassen: bei Dopplung wird "-2", "-3" … angehängt, und der
+  // fertige Slug muss noch durch isSlug() passen.
+  const base = (slugify(input.title) || "umfrage").slice(0, 50).replace(/-+$/, "");
   let slug = base;
   // Bei Dopplung eine Ziffer anhängen, damit der Link eindeutig bleibt.
   for (let i = 2; (await polls().doc(slug).get()).exists; i += 1) {
@@ -199,15 +215,14 @@ export async function createPoll(input: PollInput): Promise<string> {
 /** Ändert Titel, Beschreibung, Termine und Optionen einer Umfrage. */
 export async function updatePoll(slug: string, input: PollInput): Promise<void> {
   checkInput(input);
-  const existing = await polls().doc(slug).get();
+  const existing = await pollDoc(slug).get();
   if (!existing.exists) throw new Error("Diese Umfrage gibt es nicht (mehr).");
 
   const current = toPoll(existing.id, existing.data() as Partial<PollDoc>);
   const dates = cleanDates(input.dates);
   const choices = buildChoices(input.choices);
 
-  await polls()
-    .doc(slug)
+  await pollDoc(slug)
     .update({
       title: input.title.trim(),
       description: input.description.trim().slice(0, MAX_DESCRIPTION_LENGTH),
@@ -239,12 +254,11 @@ export async function updatePollSettings(
     note: string;
   },
 ): Promise<void> {
-  const snap = await polls().doc(slug).get();
+  const snap = await pollDoc(slug).get();
   if (!snap.exists) throw new Error("Diese Umfrage gibt es nicht (mehr).");
   const poll = toPoll(snap.id, snap.data() as Partial<PollDoc>);
 
-  await polls()
-    .doc(slug)
+  await pollDoc(slug)
     .update({
       open: patch.open,
       showResults: patch.showResults,
@@ -268,7 +282,7 @@ export async function deletePoll(slug: string): Promise<void> {
   const snap = await responses(slug).get();
   const batch = db().batch();
   snap.docs.forEach((d) => batch.delete(d.ref));
-  batch.delete(polls().doc(slug));
+  batch.delete(pollDoc(slug));
   await batch.commit();
 
   revalidateTag(POLLS_TAG);
@@ -278,45 +292,46 @@ export async function deletePoll(slug: string): Promise<void> {
 // --- Schreiben: Antworten ------------------------------------------------
 
 export interface ResponseInput {
-  name: string;
   /** Nur „yes"/„maybe" – „no" wird als fehlender Schlüssel gespeichert. */
   dates: Record<string, Exclude<Vote, "no">>;
   choices: string[];
+  /** „bin komplett raus" – schlägt Termine und Auswahl aus. */
+  declined: boolean;
   comment: string;
 }
 
 /**
- * Speichert eine Antwort. Der normalisierte Name ist die Dokument-ID: Wer
- * noch einmal mit demselben Namen abstimmt, aktualisiert seine Antwort.
+ * Speichert die Antwort eines angemeldeten Nutzers. Die Benutzer-ID ist die
+ * Dokument-ID – niemand kann die Antwort eines anderen überschreiben.
  */
 export async function saveResponse(
   slug: string,
+  user: { id: string; name: string },
   input: ResponseInput,
 ): Promise<{ updated: boolean }> {
-  const snap = await polls().doc(slug).get();
+  const snap = await pollDoc(slug).get();
   if (!snap.exists) throw new Error("Diese Umfrage gibt es nicht (mehr).");
   const poll = toPoll(snap.id, snap.data() as Partial<PollDoc>);
   if (!poll.open) throw new Error("Diese Umfrage ist geschlossen.");
 
-  const name = input.name.trim().replace(/\s+/g, " ");
-  const id = nameKey(name);
-  if (!id) throw new Error("Bitte gib deinen Namen ein.");
-  if (name.length > MAX_NAME_LENGTH) {
-    throw new Error(`Der Name darf höchstens ${MAX_NAME_LENGTH} Zeichen haben.`);
-  }
+  const id = user.id;
+  const name = user.name.trim().replace(/\s+/g, " ").slice(0, MAX_NAME_LENGTH);
 
   // Nur bekannte Termine/Optionen übernehmen – das Formular ist öffentlich.
   const dates: Record<string, Vote> = {};
-  for (const date of poll.dates) {
-    const vote = input.dates[date];
-    if (vote === "yes" || vote === "maybe") dates[date] = vote;
+  const choices: string[] = [];
+  if (!input.declined) {
+    for (const date of poll.dates) {
+      const vote = input.dates[date];
+      if (vote === "yes" || vote === "maybe") dates[date] = vote;
+    }
+    if (Object.keys(dates).length === 0) {
+      throw new Error("Bitte wähle mindestens einen Termin aus.");
+    }
+    for (const choice of poll.choices) {
+      if (input.choices.includes(choice.id)) choices.push(choice.id);
+    }
   }
-  if (Object.keys(dates).length === 0) {
-    throw new Error("Bitte wähle mindestens einen Termin aus.");
-  }
-  const choices = poll.choices
-    .filter((c) => input.choices.includes(c.id))
-    .map((c) => c.id);
 
   const ref = responses(slug).doc(id);
   const before = await ref.get();
@@ -329,15 +344,28 @@ export async function saveResponse(
 
   const now = Date.now();
   await ref.set({
+    userId: user.id,
     name,
     dates,
     choices,
+    declined: input.declined,
     comment: input.comment.trim().slice(0, MAX_COMMENT_LENGTH),
     createdAt: before.exists
       ? ((before.data() as Partial<ResponseDoc>).createdAt ?? now)
       : now,
     updatedAt: now,
   });
+
+  // Antworten aus der Zeit ohne Konten trugen den Namen als Dokument-ID.
+  // Wer sich jetzt anmeldet und abstimmt, übernimmt seine alte Zeile, statt
+  // zweimal in der Übersicht zu stehen.
+  const legacyId = nameKey(name);
+  if (legacyId && legacyId !== id) {
+    const legacy = await responses(slug).doc(legacyId).get();
+    if (legacy.exists && !(legacy.data() as Partial<ResponseDoc>).userId) {
+      await legacy.ref.delete();
+    }
+  }
 
   revalidateTag(pollTag(slug));
   revalidateTag(POLLS_TAG);
@@ -369,7 +397,7 @@ export interface SeedResult {
  * niemand zweimal abstimmen muss.
  */
 export async function seedTemplate(template: PollTemplate): Promise<SeedResult> {
-  const ref = polls().doc(template.slug);
+  const ref = pollDoc(template.slug);
   const existing = await ref.get();
   let created = false;
 
@@ -419,6 +447,8 @@ export async function seedTemplate(template: PollTemplate): Promise<SeedResult> 
         name: (d.name as string) ?? doc.id,
         dates: (d.dates as Record<string, Vote>) ?? {},
         choices: (d.restaurants as string[]) ?? [],
+        userId: "",
+        declined: false,
         comment: (d.comment as string) ?? "",
         createdAt: (d.createdAt as number) ?? Date.now(),
         updatedAt: (d.updatedAt as number) ?? Date.now(),

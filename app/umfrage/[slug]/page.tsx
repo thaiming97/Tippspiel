@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { PollForm, type ResponseDraft } from "@/components/poll/PollForm";
 import { PollResults } from "@/components/poll/PollResults";
 import { Snowflakes } from "@/components/poll/Snowflakes";
+import { getCurrentUser } from "@/lib/auth";
 import { choiceById, choiceLabel, formatDateLong } from "@/lib/polls";
 import { getPoll, getResponses } from "@/lib/pollStore";
 
@@ -18,7 +19,7 @@ export async function generateMetadata({
   return {
     title: `${poll.title} · FF Entertainment`,
     description:
-      poll.description || "Termin abstimmen – ohne Anmeldung, ohne Konto.",
+      poll.description || "Termin abstimmen – deine Antwort bleibt änderbar.",
     openGraph: {
       title: poll.title,
       description: poll.description || "Wann kannst du? Jetzt abstimmen.",
@@ -31,22 +32,25 @@ export default async function PollPage({ params }: { params: { slug: string } })
   const poll = await getPoll(params.slug);
   if (!poll) notFound();
 
-  const responses = await getResponses(poll.id);
+  const [responses, user] = await Promise.all([
+    getResponses(poll.id),
+    getCurrentUser(),
+  ]);
+  const declined = responses.filter((r) => r.declined).length;
   const festive = poll.theme === "weihnachten";
   const finalChoice = choiceById(poll, poll.finalChoice);
 
-  // Vorbelegung des Formulars: nur, wenn die Antworten ohnehin sichtbar sind.
-  const existing: Record<string, ResponseDraft> = {};
-  if (poll.showResults) {
-    for (const r of responses) {
-      existing[r.id] = {
-        name: r.name,
-        dates: r.dates,
-        choices: r.choices,
-        comment: r.comment,
-      };
-    }
-  }
+  // Nur die eigene Antwort wird ins Formular geladen – fremde Antworten
+  // erreicht niemand mehr.
+  const own = user ? responses.find((r) => r.userId === user.id) : undefined;
+  const mine: ResponseDraft | undefined = own
+    ? {
+        dates: own.dates,
+        choices: own.choices,
+        declined: own.declined,
+        comment: own.comment,
+      }
+    : undefined;
 
   return (
     <div className="space-y-6">
@@ -77,12 +81,18 @@ export default async function PollPage({ params }: { params: { slug: string } })
             </span>
           )}
           <span className="rounded-full bg-ff-cream px-3 py-1.5 ring-1 ring-ff-navy/10">
-            🔓 Ohne Anmeldung
+            ✏️ Jederzeit änderbar
           </span>
-          {responses.length > 0 && (
+          {poll.showResults && responses.length > 0 && (
             <span className="rounded-full bg-ff-navy px-3 py-1.5 text-white">
               👥 {responses.length}{" "}
               {responses.length === 1 ? "Antwort" : "Antworten"}
+              {declined > 0 && (
+                <span className="font-medium text-white/70">
+                  {" "}
+                  · {declined} {declined === 1 ? "Absage" : "Absagen"}
+                </span>
+              )}
             </span>
           )}
         </div>
@@ -108,7 +118,7 @@ export default async function PollPage({ params }: { params: { slug: string } })
 
       {/* --- Abstimmung --- */}
       {poll.open ? (
-        <PollForm poll={poll} existing={existing} />
+        <PollForm poll={poll} userName={user?.name ?? ""} mine={mine} />
       ) : (
         <section className="card border-xmas-gold/50 bg-xmas-gold/[0.10]">
           <h2 className="font-display text-lg font-extrabold text-ff-navy">

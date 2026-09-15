@@ -2,10 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireAdmin } from "@/lib/auth";
+import { getCurrentUser, requireAdmin } from "@/lib/auth";
 import {
   MAX_COMMENT_LENGTH,
-  MAX_NAME_LENGTH,
   WEIHNACHTSESSEN,
   buildDates,
   cleanDates,
@@ -38,26 +37,22 @@ export type ResponseState =
   | undefined;
 
 /**
- * Nimmt eine Antwort aus dem öffentlichen Formular an – ohne Anmeldung.
- * Geprüft wird serverseitig: Name, mindestens ein Termin, und dass nur
- * Termine/Optionen dieser Umfrage gespeichert werden.
+ * Nimmt die Antwort des angemeldeten Nutzers an. Der Name kommt aus dem
+ * Konto, nicht aus dem Formular – deshalb kann niemand die Antwort eines
+ * anderen überschreiben. Geprüft wird serverseitig außerdem, dass nur
+ * Termine und Optionen dieser Umfrage gespeichert werden.
  */
 export async function submitResponseAction(
   _prev: ResponseState,
   formData: FormData,
 ): Promise<ResponseState> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Bitte melde dich an, um abzustimmen." };
+
   const slug = String(formData.get("slug") ?? "");
   const poll = await getPoll(slug);
   if (!poll) return { error: "Diese Umfrage gibt es nicht (mehr)." };
   if (!poll.open) return { error: "Diese Umfrage ist geschlossen." };
-
-  const name = String(formData.get("name") ?? "").trim();
-  if (name.length < 2) {
-    return { error: "Bitte gib deinen Namen ein (mindestens 2 Zeichen)." };
-  }
-  if (name.length > MAX_NAME_LENGTH) {
-    return { error: `Der Name darf höchstens ${MAX_NAME_LENGTH} Zeichen haben.` };
-  }
 
   const dates: Record<string, Exclude<Vote, "no">> = {};
   for (const date of poll.dates) {
@@ -66,16 +61,21 @@ export async function submitResponseAction(
   }
 
   const choices = formData.getAll("choice").map(String);
+  const declined = formData.get("declined") === "on";
   const comment = String(formData.get("comment") ?? "").slice(0, MAX_COMMENT_LENGTH);
 
   try {
-    const { updated } = await saveResponse(slug, { name, dates, choices, comment });
+    const { updated } = await saveResponse(
+      slug,
+      { id: user.id, name: user.name },
+      { dates, choices, declined, comment },
+    );
     revalidatePoll(slug);
     return {
       ok: updated
         ? "Deine Antwort wurde aktualisiert. Danke!"
         : "Gespeichert – danke fürs Mitmachen!",
-      savedName: name,
+      savedName: user.name,
     };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Speichern fehlgeschlagen." };

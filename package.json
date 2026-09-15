@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "create-admin": "tsx scripts/create-admin.ts",
-    "seed:weihnachtsessen": "tsx scripts/seed-weihnachtsessen.ts"
+    "seed:weihnachtsessen": "tsx scripts/seed-weihnachtsessen.ts",
+    "seed:users": "tsx scripts/seed-users.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

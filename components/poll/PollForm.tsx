@@ -4,19 +4,17 @@ import { useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import {
   MAX_COMMENT_LENGTH,
-  MAX_NAME_LENGTH,
   formatDate,
   groupByMonth,
-  nameKey,
 } from "@/lib/polls";
 import { submitResponseAction } from "@/app/actions/polls";
 import type { PollDoc, Vote } from "@/lib/types";
 
 /** Was das Formular zum Vorbelegen braucht (Antwort ohne Zeitstempel). */
 export interface ResponseDraft {
-  name: string;
   dates: Record<string, Vote>;
   choices: string[];
+  declined: boolean;
   comment: string;
 }
 
@@ -40,68 +38,70 @@ const SEGMENT_ACTIVE: Record<Vote, string> = {
   no: "bg-ink/[0.12] text-ink",
 };
 
-function SubmitButton({ update }: { update: boolean }) {
+function SubmitButton({ update, declined }: { update: boolean; declined: boolean }) {
   const { pending } = useFormStatus();
   return (
     <button
       className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-ff-orange-gradient px-6 py-3 text-base font-bold text-white shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover active:translate-y-0 active:scale-[0.99] disabled:opacity-60 sm:w-auto"
       disabled={pending}
     >
-      {pending ? "Speichern…" : update ? "Antwort aktualisieren" : "Antwort abschicken"}
+      {pending
+        ? "Speichern…"
+        : declined
+          ? update
+            ? "Absage aktualisieren"
+            : "Absage abschicken"
+          : update
+            ? "Antwort aktualisieren"
+            : "Antwort abschicken"}
     </button>
   );
 }
 
 /**
- * Das öffentliche Abstimmungs-Formular – ohne Anmeldung.
- *
- * Wer denselben Namen noch einmal eingibt, bearbeitet seine eigene Antwort:
- * passende Einträge aus `existing` werden dann automatisch vorbelegt.
+ * Das Abstimmungs-Formular. Die Antwort hängt am angemeldeten Konto: sie ist
+ * beim Öffnen vorbelegt (`mine`) und lässt sich jederzeit ändern – fremde
+ * Antworten sind nicht erreichbar.
  */
 export function PollForm({
   poll,
-  existing,
+  userName,
+  mine,
   disabled,
 }: {
   poll: PollDoc;
-  existing: Record<string, ResponseDraft>;
+  userName: string;
+  mine?: ResponseDraft;
   disabled?: boolean;
 }) {
   const [state, formAction] = useFormState(submitResponseAction, undefined);
-  const [name, setName] = useState("");
   /** Nicht beantwortete Termine bleiben leer – „Nein" ist keine Vorauswahl. */
-  const [votes, setVotes] = useState<Record<string, Vote>>({});
-  const [picked, setPicked] = useState<string[]>([]);
-  const [comment, setComment] = useState("");
-  /** Name, dessen Antwort gerade geladen ist – erkennt den Bearbeiten-Fall. */
-  const [loadedKey, setLoadedKey] = useState<string | null>(null);
+  const [votes, setVotes] = useState<Record<string, Vote>>(mine?.dates ?? {});
+  const [picked, setPicked] = useState<string[]>(mine?.choices ?? []);
+  const [comment, setComment] = useState(mine?.comment ?? "");
+  /** „bin komplett raus" – kann an keinem Termin. */
+  const [declined, setDeclined] = useState(mine?.declined ?? false);
+  const editing = Boolean(mine);
 
   const months = groupByMonth(poll.dates);
   const chosen = poll.dates.filter((d) => votes[d] === "yes" || votes[d] === "maybe");
 
-  /**
-   * Beim Tippen des Namens die eigene Antwort laden bzw. das Formular wieder
-   * leeren, wenn der Name nicht mehr passt.
-   */
-  function onNameChange(value: string) {
-    setName(value);
-    const key = nameKey(value);
-    const match = existing[key];
-    if (match && key !== loadedKey) {
-      setVotes(match.dates);
-      setPicked(match.choices);
-      setComment(match.comment);
-      setLoadedKey(key);
-    } else if (!match && loadedKey) {
-      setVotes({});
-      setPicked([]);
-      setComment("");
-      setLoadedKey(null);
-    }
+  function setVote(date: string, vote: Vote) {
+    setDeclined(false);
+    setVotes((prev) => ({ ...prev, [date]: vote }));
   }
 
-  function setVote(date: string, vote: Vote) {
-    setVotes((prev) => ({ ...prev, [date]: vote }));
+  /** „Kann immer": alle Termine auf Ja. */
+  function acceptAll() {
+    setDeclined(false);
+    setVotes(Object.fromEntries(poll.dates.map((d) => [d, "yes" as Vote])));
+  }
+
+  /** „Bin komplett raus": keine Termine, keine Auswahl. */
+  function declineAll() {
+    setDeclined(true);
+    setVotes({});
+    setPicked([]);
   }
 
   function toggleChoice(id: string) {
@@ -123,8 +123,8 @@ export function PollForm({
               Gespeichert als <strong>{state.savedName}</strong>.{" "}
             </>
           )}
-          Du kannst deine Antwort jederzeit ändern – einfach denselben Namen
-          nochmal eingeben.
+          Du kannst deine Antwort jederzeit ändern – einfach diese Seite
+          nochmal öffnen.
         </p>
         <button
           type="button"
@@ -137,42 +137,21 @@ export function PollForm({
     );
   }
 
-  const editing = loadedKey !== null;
-
   return (
     <form action={formAction} className="space-y-6">
       <input type="hidden" name="slug" value={poll.id} />
 
-      {/* --- Name --- */}
-      <div className="card border-ink/[0.06]">
-        <label className="label" htmlFor="poll-name">
-          Dein Name
-        </label>
-        <input
-          id="poll-name"
-          name="name"
-          className="input"
-          placeholder="z.B. Felix M."
-          value={name}
-          onChange={(e) => onNameChange(e.target.value)}
-          maxLength={MAX_NAME_LENGTH}
-          autoComplete="name"
-          list="poll-names"
-          required
-          disabled={disabled}
-        />
-        {Object.keys(existing).length > 0 && (
-          <datalist id="poll-names">
-            {Object.values(existing).map((r) => (
-              <option key={r.name} value={r.name} />
-            ))}
-          </datalist>
-        )}
-        <p className="mt-2 text-xs text-ink-soft">
-          {editing
-            ? "✏️ Deine bisherige Antwort ist geladen – ändere sie und schick sie nochmal ab."
-            : "Derselbe Name aktualisiert später deine Antwort, es entsteht keine zweite Zeile."}
+      {/* --- Wer stimmt ab --- */}
+      <div className="card flex flex-wrap items-center justify-between gap-2 border-ink/[0.06] py-4">
+        <p className="text-sm text-ink-soft">
+          Du stimmst ab als{" "}
+          <strong className="font-semibold text-ff-navy">{userName}</strong>.
         </p>
+        {editing && (
+          <span className="chip bg-xmas-pine/10 text-xmas-pine">
+            ✏️ Antwort wird bearbeitet
+          </span>
+        )}
       </div>
 
       {/* --- Termine --- */}
@@ -182,7 +161,7 @@ export function PollForm({
             Wann kannst du?
           </h2>
           <span className="chip bg-ff-orange/10 text-ff-orange">
-            {chosen.length} von {poll.dates.length} gewählt
+            {declined ? "abgemeldet" : `${chosen.length} von ${poll.dates.length} gewählt`}
           </span>
         </div>
         <p className="mb-4 text-sm text-ink-soft">
@@ -191,7 +170,50 @@ export function PollForm({
           wenn es sonst nicht klappt.
         </p>
 
-        {months.map((month) => (
+        {/* Schnellwahl für die beiden häufigsten Fälle. */}
+        <div className="mb-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={acceptAll}
+            disabled={disabled}
+            className={`rounded-full px-4 py-2 text-sm font-bold transition ${
+              chosen.length === poll.dates.length && !declined
+                ? "bg-xmas-pine text-white shadow-card"
+                : "bg-white text-xmas-pine ring-1 ring-xmas-pine/25 hover:bg-xmas-pine/[0.06]"
+            }`}
+          >
+            ✓ Kann immer
+          </button>
+          <button
+            type="button"
+            onClick={declined ? () => setDeclined(false) : declineAll}
+            disabled={disabled}
+            aria-pressed={declined}
+            className={`rounded-full px-4 py-2 text-sm font-bold transition ${
+              declined
+                ? "bg-ff-orange text-white shadow-card"
+                : "bg-white text-ink-soft ring-1 ring-ink/15 hover:text-ink"
+            }`}
+          >
+            ✗ Bin komplett raus
+          </button>
+        </div>
+
+        {/* Das Feld sagt dem Server, dass es eine Absage ist. */}
+        {declined && <input type="hidden" name="declined" value="on" />}
+
+        {declined ? (
+          <div className="rounded-2xl border border-ff-orange/30 bg-ff-orange/[0.06] px-4 py-4">
+            <p className="font-semibold text-ff-navy">
+              Du bist für alle Termine abgemeldet.
+            </p>
+            <p className="mt-0.5 text-sm text-ink-soft">
+              Dann wissen wir, dass wir nicht auf dich warten müssen. Schick die
+              Absage unten ab.
+            </p>
+          </div>
+        ) : (
+          months.map((month) => (
           <div key={month.label} className="mb-5 last:mb-0">
             <div className="eyebrow mb-2.5">{month.label}</div>
             <div className="grid gap-2 md:grid-cols-2">
@@ -248,11 +270,12 @@ export function PollForm({
               })}
             </div>
           </div>
-        ))}
+          ))
+        )}
       </div>
 
       {/* --- Auswahl (Restaurants, Ziele, …) --- */}
-      {poll.choices.length > 0 && (
+      {poll.choices.length > 0 && !declined && (
       <div className="card border-ink/[0.06]">
         <h2 className="font-display text-lg font-extrabold text-ff-navy">
           {poll.choicesTitle}
@@ -321,9 +344,9 @@ export function PollForm({
       )}
 
       <div className="flex flex-col items-center gap-2">
-        <SubmitButton update={editing} />
+        <SubmitButton update={editing} declined={declined} />
         <p className="text-center text-xs text-ink-soft">
-          Kein Konto, keine E-Mail, kein Abo.
+          Nur du kannst deine Antwort ändern.
         </p>
       </div>
     </form>

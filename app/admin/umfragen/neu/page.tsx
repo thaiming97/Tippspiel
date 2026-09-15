@@ -1,9 +1,13 @@
 import Link from "next/link";
 import { PollEditor } from "@/components/poll/PollEditor";
+import { requireAdminPage } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-export default function NeueUmfragePage() {
+export default async function NeueUmfragePage() {
+  // Nicht nur auf die Middleware verlassen (siehe requireAdminPage).
+  await requireAdminPage();
+
   return (
     <div className="space-y-5">
       <header>
@@ -14,8 +18,8 @@ export default function NeueUmfragePage() {
           Neue Umfrage
         </h1>
         <p className="text-sm text-ink-soft">
-          Titel, Termine und Auswahl bestimmst du selbst – abstimmen kann danach
-          jeder ohne Anmeldung.
+          Titel, Termine und Auswahl bestimmst du selbst – abstimmen kann
+          danach jeder mit einem Konto.
         </p>
       </header>
       <PollEditor />

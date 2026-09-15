@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { requireAdminPage } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import { CopyLinkButton } from "@/components/poll/CopyLinkButton";
 import { DeletePollForm } from "@/components/poll/DeletePollForm";
@@ -34,10 +35,14 @@ export default async function AdminPollPage({
 }: {
   params: { slug: string };
 }) {
+  // Nicht nur auf die Middleware verlassen (siehe requireAdminPage).
+  await requireAdminPage();
+
   const poll = await getPoll(params.slug);
   if (!poll) notFound();
 
   const responses = await getResponses(poll.id);
+  const declined = responses.filter((r) => r.declined).length;
   const best = rankDates(tallyDates(poll.dates, responses))[0];
   const topChoice = tallyChoices(poll.choices, responses)[0];
   const finalChoice = choiceById(poll, poll.finalChoice);
@@ -75,7 +80,13 @@ export default async function AdminPollPage({
         <Stat
           label="Antworten"
           value={String(responses.length)}
-          hint={responses.length === 0 ? "Link noch teilen" : "Teilnehmer"}
+          hint={
+            responses.length === 0
+              ? "Link noch teilen"
+              : declined > 0
+                ? `davon ${declined} ${declined === 1 ? "Absage" : "Absagen"}`
+                : "Teilnehmer"
+          }
         />
         <Stat
           label="Bester Termin"

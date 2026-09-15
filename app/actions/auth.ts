@@ -10,7 +10,19 @@ import {
   verifyPassword,
 } from "@/lib/auth";
 import { normalizeUsername } from "@/lib/username";
+import { createUser } from "@/lib/admin";
 import type { UserDoc } from "@/lib/types";
+
+/**
+ * Nach dem Anmelden dorthin, wo man hin wollte. Nur seiteneigene Pfade
+ * zulassen – sonst wäre das eine offene Weiterleitung nach außen.
+ */
+function safeTarget(value: unknown): string {
+  const target = String(value ?? "");
+  if (!target.startsWith("/") || target.startsWith("//")) return "/";
+  if (target.startsWith("/login") || target.startsWith("/registrieren")) return "/";
+  return target;
+}
 
 export type ActionState = { error?: string } | undefined;
 
@@ -52,8 +64,11 @@ export async function loginAction(
     mustChangePassword: user.mustChangePassword,
   });
 
-  if (user.mustChangePassword) redirect("/change-password");
-  redirect("/");
+  const target = safeTarget(formData.get("weiter"));
+  if (user.mustChangePassword) {
+    redirect(`/change-password?weiter=${encodeURIComponent(target)}`);
+  }
+  redirect(target);
 }
 
 export async function logoutAction(): Promise<void> {
@@ -100,5 +115,59 @@ export async function changePasswordAction(
     mustChangePassword: false,
   });
 
-  redirect("/");
+  redirect(safeTarget(formData.get("weiter")));
+}
+
+/**
+ * Selbstregistrierung: Wer mitabstimmen will, legt sich hier ein Konto an
+ * und setzt sein Passwort gleich selbst (also kein Passwortwechsel beim
+ * ersten Login). Angelegt wird immer ein Teilnehmer-Konto, niemals ein
+ * Organisator – Rollen vergibt nur ein Admin.
+ */
+export async function registerAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const name = String(formData.get("name") ?? "").trim();
+  const password = String(formData.get("password") ?? "");
+  const confirm = String(formData.get("confirm") ?? "");
+
+  if (name.length < 2) {
+    return { error: "Bitte gib deinen Namen ein (mindestens 2 Zeichen)." };
+  }
+  if (name.length > 40) {
+    return { error: "Der Name darf höchstens 40 Zeichen haben." };
+  }
+  if (password.length < 8) {
+    return { error: "Das Passwort muss mindestens 8 Zeichen haben." };
+  }
+  if (password !== confirm) {
+    return { error: "Die Passwörter stimmen nicht überein." };
+  }
+
+  let id: string;
+  try {
+    ({ id } = await createUser({
+      name,
+      startPassword: password,
+      role: "user",
+      mustChangePassword: false,
+    }));
+  } catch (e) {
+    return {
+      error:
+        e instanceof Error
+          ? e.message
+          : "Anlegen fehlgeschlagen. Probiere es nochmal.",
+    };
+  }
+
+  await createSession({
+    sub: id,
+    name,
+    role: "user",
+    mustChangePassword: false,
+  });
+
+  redirect(safeTarget(formData.get("weiter")));
 }

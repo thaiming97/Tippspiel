@@ -1,4 +1,4 @@
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, requireAdminPage } from "@/lib/auth";
 import { listUsers } from "@/lib/admin";
 import { deleteUserAction } from "@/app/actions/admin";
 import { formatDateTime, formatRelative } from "@/lib/format";
@@ -8,18 +8,22 @@ import { ResetPasswordForm } from "@/components/admin/ResetPasswordForm";
 export const dynamic = "force-dynamic";
 
 export default async function AdminUsersPage() {
+  // Nicht nur auf die Middleware verlassen (siehe requireAdminPage).
+  await requireAdminPage();
   const me = await getCurrentUser();
   const users = await listUsers();
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Benutzerverwaltung</h1>
+      <h1 className="font-display text-2xl font-extrabold text-ff-navy">
+        Organisatoren
+      </h1>
 
       <CreateUserForm />
 
       <div className="card overflow-hidden p-0">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 text-left text-gray-500">
+          <thead className="bg-ink/[0.03] text-left text-ink-soft">
             <tr>
               <th className="px-4 py-2">Name</th>
               <th className="px-4 py-2">Login</th>
@@ -31,20 +35,20 @@ export default async function AdminUsersPage() {
           </thead>
           <tbody>
             {users.map((u) => (
-              <tr key={u.id} className="border-t border-gray-100">
+              <tr key={u.id} className="border-t border-ink/[0.06]">
                 <td className="px-4 py-2 font-medium">{u.name}</td>
                 <td className="px-4 py-2 font-mono text-xs">{u.username}</td>
-                <td className="px-4 py-2 text-gray-600">
+                <td className="px-4 py-2 text-ink-soft">
                   {u.lastSeenAt ?? u.lastLoginAt ? (
                     <span title={formatDateTime((u.lastSeenAt ?? u.lastLoginAt)!)}>
                       {formatRelative((u.lastSeenAt ?? u.lastLoginAt)!)}
                     </span>
                   ) : (
-                    <span className="text-gray-400">noch nie</span>
+                    <span className="text-ink/40">noch nie</span>
                   )}
                 </td>
                 <td className="px-4 py-2">
-                  {u.role === "admin" ? "Admin" : "Teilnehmer"}
+                  {u.role === "admin" ? "Organisator" : "Teilnehmer"}
                 </td>
                 <td className="px-4 py-2">
                   {u.mustChangePassword ? (

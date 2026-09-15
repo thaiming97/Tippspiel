@@ -28,8 +28,8 @@ export default async function StartPage() {
           <span className="block text-ff-orange sm:inline">gemeinsam planen</span>
         </h1>
         <p className="mx-auto mt-3 max-w-xl text-sm text-ink-soft sm:text-base">
-          Termin aussuchen, Ziel ankreuzen, fertig. Ohne Konto, ohne E-Mail,
-          ohne Abo.
+          Termin aussuchen, Ziel ankreuzen, fertig. Deine Antwort kannst du
+          jederzeit ändern – und nur du.
         </p>
       </header>
 
@@ -61,10 +61,14 @@ export default async function StartPage() {
                   {poll.dates.length === 1 ? "Termin" : "Termine"}
                   {poll.choices.length > 0 && ` · ${poll.choices.length} zur Auswahl`}
                 </p>
+                {/* Zahlen nur, wenn der Stand öffentlich sichtbar ist –
+                    sonst verrät die Startseite, was die Umfrage verbirgt. */}
                 <p className="mt-3 text-xs font-semibold text-ff-navy">
-                  {count === 0
-                    ? "Noch keine Antwort – sei der Erste"
-                    : `${count} ${count === 1 ? "Antwort" : "Antworten"}`}
+                  {!poll.showResults
+                    ? "Jetzt abstimmen"
+                    : count === 0
+                      ? "Noch keine Antwort – sei der Erste"
+                      : `${count} ${count === 1 ? "Antwort" : "Antworten"}`}
                 </p>
               </Link>
             ))}
@@ -98,7 +102,9 @@ export default async function StartPage() {
                   <span className="text-sm text-ink-soft">
                     {poll.finalDate
                       ? formatDateLong(poll.finalDate)
-                      : `${count} ${count === 1 ? "Antwort" : "Antworten"}`}
+                      : poll.showResults
+                        ? `${count} ${count === 1 ? "Antwort" : "Antworten"}`
+                        : "abgeschlossen"}
                   </span>
                 </Link>
               </li>
