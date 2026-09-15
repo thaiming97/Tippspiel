@@ -48,7 +48,7 @@ export default async function AdminUsersPage() {
                   )}
                 </td>
                 <td className="px-4 py-2">
-                  {u.role === "admin" ? "Organisator" : "Kein Zugriff"}
+                  {u.role === "admin" ? "Organisator" : "Teilnehmer"}
                 </td>
                 <td className="px-4 py-2">
                   {u.mustChangePassword ? (

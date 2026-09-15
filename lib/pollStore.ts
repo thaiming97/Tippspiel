@@ -74,6 +74,7 @@ function toPoll(id: string, data: Partial<PollDoc>): PollDoc {
 function toResponse(id: string, data: Partial<ResponseDoc>): ResponseDoc {
   return {
     id,
+    userId: data.userId ?? "",
     name: data.name ?? id,
     dates: data.dates ?? {},
     choices: data.choices ?? [],
@@ -291,7 +292,6 @@ export async function deletePoll(slug: string): Promise<void> {
 // --- Schreiben: Antworten ------------------------------------------------
 
 export interface ResponseInput {
-  name: string;
   /** Nur „yes"/„maybe" – „no" wird als fehlender Schlüssel gespeichert. */
   dates: Record<string, Exclude<Vote, "no">>;
   choices: string[];
@@ -301,11 +301,12 @@ export interface ResponseInput {
 }
 
 /**
- * Speichert eine Antwort. Der normalisierte Name ist die Dokument-ID: Wer
- * noch einmal mit demselben Namen abstimmt, aktualisiert seine Antwort.
+ * Speichert die Antwort eines angemeldeten Nutzers. Die Benutzer-ID ist die
+ * Dokument-ID – niemand kann die Antwort eines anderen überschreiben.
  */
 export async function saveResponse(
   slug: string,
+  user: { id: string; name: string },
   input: ResponseInput,
 ): Promise<{ updated: boolean }> {
   const snap = await pollDoc(slug).get();
@@ -313,12 +314,8 @@ export async function saveResponse(
   const poll = toPoll(snap.id, snap.data() as Partial<PollDoc>);
   if (!poll.open) throw new Error("Diese Umfrage ist geschlossen.");
 
-  const name = input.name.trim().replace(/\s+/g, " ");
-  const id = nameKey(name);
-  if (!id) throw new Error("Bitte gib deinen Namen ein.");
-  if (name.length > MAX_NAME_LENGTH) {
-    throw new Error(`Der Name darf höchstens ${MAX_NAME_LENGTH} Zeichen haben.`);
-  }
+  const id = user.id;
+  const name = user.name.trim().replace(/\s+/g, " ").slice(0, MAX_NAME_LENGTH);
 
   // Nur bekannte Termine/Optionen übernehmen – das Formular ist öffentlich.
   const dates: Record<string, Vote> = {};
@@ -347,6 +344,7 @@ export async function saveResponse(
 
   const now = Date.now();
   await ref.set({
+    userId: user.id,
     name,
     dates,
     choices,
@@ -357,6 +355,17 @@ export async function saveResponse(
       : now,
     updatedAt: now,
   });
+
+  // Antworten aus der Zeit ohne Konten trugen den Namen als Dokument-ID.
+  // Wer sich jetzt anmeldet und abstimmt, übernimmt seine alte Zeile, statt
+  // zweimal in der Übersicht zu stehen.
+  const legacyId = nameKey(name);
+  if (legacyId && legacyId !== id) {
+    const legacy = await responses(slug).doc(legacyId).get();
+    if (legacy.exists && !(legacy.data() as Partial<ResponseDoc>).userId) {
+      await legacy.ref.delete();
+    }
+  }
 
   revalidateTag(pollTag(slug));
   revalidateTag(POLLS_TAG);
@@ -438,6 +447,7 @@ export async function seedTemplate(template: PollTemplate): Promise<SeedResult> 
         name: (d.name as string) ?? doc.id,
         dates: (d.dates as Record<string, Vote>) ?? {},
         choices: (d.restaurants as string[]) ?? [],
+        userId: "",
         declined: false,
         comment: (d.comment as string) ?? "",
         createdAt: (d.createdAt as number) ?? Date.now(),

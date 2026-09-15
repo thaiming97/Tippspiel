@@ -28,8 +28,8 @@ export default async function StartPage() {
           <span className="block text-ff-orange sm:inline">gemeinsam planen</span>
         </h1>
         <p className="mx-auto mt-3 max-w-xl text-sm text-ink-soft sm:text-base">
-          Termin aussuchen, Ziel ankreuzen, fertig. Ohne Konto, ohne E-Mail,
-          ohne Abo.
+          Termin aussuchen, Ziel ankreuzen, fertig. Deine Antwort kannst du
+          jederzeit ändern – und nur du.
         </p>
       </header>
 

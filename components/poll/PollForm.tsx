@@ -4,17 +4,14 @@ import { useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import {
   MAX_COMMENT_LENGTH,
-  MAX_NAME_LENGTH,
   formatDate,
   groupByMonth,
-  nameKey,
 } from "@/lib/polls";
 import { submitResponseAction } from "@/app/actions/polls";
 import type { PollDoc, Vote } from "@/lib/types";
 
 /** Was das Formular zum Vorbelegen braucht (Antwort ohne Zeitstempel). */
 export interface ResponseDraft {
-  name: string;
   dates: Record<string, Vote>;
   choices: string[];
   declined: boolean;
@@ -62,56 +59,32 @@ function SubmitButton({ update, declined }: { update: boolean; declined: boolean
 }
 
 /**
- * Das öffentliche Abstimmungs-Formular – ohne Anmeldung.
- *
- * Wer denselben Namen noch einmal eingibt, bearbeitet seine eigene Antwort:
- * passende Einträge aus `existing` werden dann automatisch vorbelegt.
+ * Das Abstimmungs-Formular. Die Antwort hängt am angemeldeten Konto: sie ist
+ * beim Öffnen vorbelegt (`mine`) und lässt sich jederzeit ändern – fremde
+ * Antworten sind nicht erreichbar.
  */
 export function PollForm({
   poll,
-  existing,
+  userName,
+  mine,
   disabled,
 }: {
   poll: PollDoc;
-  existing: Record<string, ResponseDraft>;
+  userName: string;
+  mine?: ResponseDraft;
   disabled?: boolean;
 }) {
   const [state, formAction] = useFormState(submitResponseAction, undefined);
-  const [name, setName] = useState("");
   /** Nicht beantwortete Termine bleiben leer – „Nein" ist keine Vorauswahl. */
-  const [votes, setVotes] = useState<Record<string, Vote>>({});
-  const [picked, setPicked] = useState<string[]>([]);
-  const [comment, setComment] = useState("");
+  const [votes, setVotes] = useState<Record<string, Vote>>(mine?.dates ?? {});
+  const [picked, setPicked] = useState<string[]>(mine?.choices ?? []);
+  const [comment, setComment] = useState(mine?.comment ?? "");
   /** „bin komplett raus" – kann an keinem Termin. */
-  const [declined, setDeclined] = useState(false);
-  /** Name, dessen Antwort gerade geladen ist – erkennt den Bearbeiten-Fall. */
-  const [loadedKey, setLoadedKey] = useState<string | null>(null);
+  const [declined, setDeclined] = useState(mine?.declined ?? false);
+  const editing = Boolean(mine);
 
   const months = groupByMonth(poll.dates);
   const chosen = poll.dates.filter((d) => votes[d] === "yes" || votes[d] === "maybe");
-
-  /**
-   * Beim Tippen des Namens die eigene Antwort laden bzw. das Formular wieder
-   * leeren, wenn der Name nicht mehr passt.
-   */
-  function onNameChange(value: string) {
-    setName(value);
-    const key = nameKey(value);
-    const match = existing[key];
-    if (match && key !== loadedKey) {
-      setVotes(match.dates);
-      setPicked(match.choices);
-      setDeclined(match.declined);
-      setComment(match.comment);
-      setLoadedKey(key);
-    } else if (!match && loadedKey) {
-      setVotes({});
-      setPicked([]);
-      setDeclined(false);
-      setComment("");
-      setLoadedKey(null);
-    }
-  }
 
   function setVote(date: string, vote: Vote) {
     setDeclined(false);
@@ -150,8 +123,8 @@ export function PollForm({
               Gespeichert als <strong>{state.savedName}</strong>.{" "}
             </>
           )}
-          Du kannst deine Antwort jederzeit ändern – einfach denselben Namen
-          nochmal eingeben.
+          Du kannst deine Antwort jederzeit ändern – einfach diese Seite
+          nochmal öffnen.
         </p>
         <button
           type="button"
@@ -164,42 +137,21 @@ export function PollForm({
     );
   }
 
-  const editing = loadedKey !== null;
-
   return (
     <form action={formAction} className="space-y-6">
       <input type="hidden" name="slug" value={poll.id} />
 
-      {/* --- Name --- */}
-      <div className="card border-ink/[0.06]">
-        <label className="label" htmlFor="poll-name">
-          Dein Name
-        </label>
-        <input
-          id="poll-name"
-          name="name"
-          className="input"
-          placeholder="z.B. Felix M."
-          value={name}
-          onChange={(e) => onNameChange(e.target.value)}
-          maxLength={MAX_NAME_LENGTH}
-          autoComplete="name"
-          list="poll-names"
-          required
-          disabled={disabled}
-        />
-        {Object.keys(existing).length > 0 && (
-          <datalist id="poll-names">
-            {Object.values(existing).map((r) => (
-              <option key={r.name} value={r.name} />
-            ))}
-          </datalist>
-        )}
-        <p className="mt-2 text-xs text-ink-soft">
-          {editing
-            ? "✏️ Deine bisherige Antwort ist geladen – ändere sie und schick sie nochmal ab."
-            : "Derselbe Name aktualisiert später deine Antwort, es entsteht keine zweite Zeile."}
+      {/* --- Wer stimmt ab --- */}
+      <div className="card flex flex-wrap items-center justify-between gap-2 border-ink/[0.06] py-4">
+        <p className="text-sm text-ink-soft">
+          Du stimmst ab als{" "}
+          <strong className="font-semibold text-ff-navy">{userName}</strong>.
         </p>
+        {editing && (
+          <span className="chip bg-xmas-pine/10 text-xmas-pine">
+            ✏️ Antwort wird bearbeitet
+          </span>
+        )}
       </div>
 
       {/* --- Termine --- */}
@@ -394,7 +346,7 @@ export function PollForm({
       <div className="flex flex-col items-center gap-2">
         <SubmitButton update={editing} declined={declined} />
         <p className="text-center text-xs text-ink-soft">
-          Kein Konto, keine E-Mail, kein Abo.
+          Nur du kannst deine Antwort ändern.
         </p>
       </div>
     </form>

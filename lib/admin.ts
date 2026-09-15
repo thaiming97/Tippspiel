@@ -1,14 +1,8 @@
 import "server-only";
-import { randomBytes } from "crypto";
 import { db, Collections } from "./firebaseAdmin";
 import { hashPassword } from "./auth";
 import { normalizeUsername } from "./username";
 import type { Role, UserDoc } from "./types";
-
-/** Erzeugt ein gut lesbares Startpasswort. */
-export function generateStartPassword(): string {
-  return randomBytes(6).toString("base64url");
-}
 
 /**
  * Legt einen Organisator mit Startpasswort an. Beim ersten Login muss dieses
@@ -19,6 +13,8 @@ export async function createUser(input: {
   startPassword: string;
   email?: string;
   role?: Role;
+  /** false, wenn der Nutzer sein Passwort selbst gesetzt hat. */
+  mustChangePassword?: boolean;
 }): Promise<{ id: string }> {
   const name = input.name.trim();
   const username = normalizeUsername(name);
@@ -30,7 +26,7 @@ export async function createUser(input: {
     .limit(1)
     .get();
   if (!existing.empty) {
-    throw new Error("Es existiert bereits ein Benutzer mit diesem Namen.");
+    throw new Error("Diesen Namen gibt es schon. Wähle einen anderen.");
   }
 
   const ref = db().collection(Collections.users).doc();
@@ -39,8 +35,8 @@ export async function createUser(input: {
     name,
     email: input.email?.trim().toLowerCase() || "",
     passwordHash: await hashPassword(input.startPassword),
-    role: input.role ?? "admin",
-    mustChangePassword: true,
+    role: input.role ?? "user",
+    mustChangePassword: input.mustChangePassword ?? true,
     createdAt: Date.now(),
   };
   await ref.set(user);

@@ -18,8 +18,8 @@ export default async function NeueUmfragePage() {
           Neue Umfrage
         </h1>
         <p className="text-sm text-ink-soft">
-          Titel, Termine und Auswahl bestimmst du selbst – abstimmen kann danach
-          jeder ohne Anmeldung.
+          Titel, Termine und Auswahl bestimmst du selbst – abstimmen kann
+          danach jeder mit einem Konto.
         </p>
       </header>
       <PollEditor />

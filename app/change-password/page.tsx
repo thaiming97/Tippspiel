@@ -1,5 +1,6 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { useFormState, useFormStatus } from "react-dom";
 import { changePasswordAction } from "../actions/auth";
 
@@ -14,14 +15,16 @@ function SubmitButton() {
 
 export default function ChangePasswordPage() {
   const [state, formAction] = useFormState(changePasswordAction, undefined);
+  const weiter = useSearchParams().get("weiter") ?? "/";
 
   return (
     <div className="mx-auto mt-12 max-w-sm">
       <h1 className="mb-1 text-center text-2xl font-bold">Passwort festlegen</h1>
       <p className="mb-6 text-center text-sm text-ink-soft">
-        Bei der ersten Anmeldung musst du dein Startpasswort ändern.
+        Bei der ersten Anmeldung legst du dein eigenes Passwort fest.
       </p>
       <form action={formAction} className="card space-y-4">
+        <input type="hidden" name="weiter" value={weiter} />
         <div>
           <label className="label" htmlFor="current">
             Aktuelles (Start-)Passwort

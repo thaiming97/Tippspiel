@@ -1,8 +1,9 @@
 # 🍽️ FF Entertainment
 
 Terminabstimmungen für **Feli & Felix · Essen & Ausflüge** – die eigene
-Doodle-Alternative der Abteilung. Wer abstimmt, braucht **kein Konto**; wer
-Umfragen anlegt und auswertet, meldet sich als **Organisator** an.
+Doodle-Alternative der Abteilung. Jeder meldet sich mit einem Konto an, damit
+**nur er selbst** seine Antwort ändern kann. Konten legt entweder der
+Organisator an oder man registriert sich selbst.
 
 ## Funktionen
 
@@ -11,9 +12,13 @@ Umfragen anlegt und auswertet, meldet sich als **Organisator** an.
   fest – beliebig viele Umfragen parallel.
 - **Termin-Generator**: „jeden Do und Fr vom 12.11. bis 18.12." erzeugt die
   Terminliste auf Knopfdruck; einzelne Tage lassen sich ergänzen oder entfernen.
-- **Abstimmen ohne Anmeldung**: je Termin **Ja / Wenn nötig / Nein**,
-  Mehrfachauswahl bei den Optionen, optionale Anmerkung. Derselbe Name
-  bearbeitet die eigene Antwort statt eine zweite Zeile anzulegen.
+- **Abstimmen**: je Termin **Ja / Wenn nötig / Nein**, Mehrfachauswahl bei den
+  Optionen, optionale Anmerkung. Die Antwort hängt am Konto: sie ist beim
+  Öffnen vorbelegt und jederzeit änderbar – fremde Antworten kann niemand
+  überschreiben.
+- **Konten**: Selbstregistrierung unter `/registrieren` (Passwort gleich selbst
+  setzen) oder vom Organisator angelegt (Startpasswort, muss beim ersten Login
+  geändert werden). Der Organisator kann Passwörter zurücksetzen.
 - **Schnellwahl**: „Kann immer" setzt alle Termine auf Ja, „Bin komplett raus"
   meldet für alle Termine ab. Eine Absage zählt als abgegebene Antwort und
   wird in der Übersicht ausgewiesen – der Organisator weiß dann, dass er auf
@@ -29,12 +34,16 @@ Umfragen anlegt und auswertet, meldet sich als **Organisator** an.
 
 | Seite | Zweck | Zugang |
 | --- | --- | --- |
-| `/` | Übersicht der laufenden Umfragen | öffentlich |
-| `/umfrage/<slug>` | abstimmen + aktueller Stand | öffentlich |
-| `/login` | Anmeldung der Organisatoren | – |
+| `/login`, `/registrieren` | anmelden bzw. selbst ein Konto anlegen | offen |
+| `/` | Übersicht der laufenden Umfragen | angemeldet |
+| `/umfrage/<slug>` | abstimmen + aktueller Stand | angemeldet |
+| `/change-password` | eigenes Passwort festlegen | angemeldet |
 | `/admin` | Umfragen anlegen und verwalten | nur Organisatoren |
 | `/admin/umfragen/<slug>` | auswerten, steuern, bearbeiten | nur Organisatoren |
-| `/admin/users` | Organisatoren-Konten | nur Organisatoren |
+| `/admin/users` | Konten anlegen, Passwörter zurücksetzen | nur Organisatoren |
+
+Ein geteilter Umfrage-Link führt zunächst auf die Anmeldung und danach
+automatisch auf die Umfrage weiter (`?weiter=…`).
 
 Der Link einer Umfrage ist ihr Slug (aus dem Titel erzeugt) und bleibt stabil,
 auch wenn der Titel später geändert wird.
@@ -49,8 +58,10 @@ auch wenn der Titel später geändert wird.
 - Eigene Authentifizierung (bcrypt-Passwörter, signierte JWT-Session-Cookies)
 
 Datenmodell: `polls/<slug>` je Umfrage, darunter die Unter-Sammlung
-`responses/<normalisierter Name>` mit den Antworten. `users` enthält die
-Organisatoren-Konten.
+`responses/<Benutzer-ID>` mit den Antworten – die Benutzer-ID als Dokument-ID
+sorgt dafür, dass jeder genau eine Antwort je Umfrage hat und nur seine
+eigene ändern kann. `users` enthält alle Konten (Rolle `user` = abstimmen,
+`admin` = zusätzlich verwalten).
 
 ## Einrichtung
 
@@ -78,9 +89,16 @@ cp .env.example .env.local
 ```bash
 npm install
 npm run create-admin              # ersten Organisator anlegen
+npm run seed:users                # Konten der Runde, Passwort: start123
 npm run seed:weihnachtsessen      # optional: Weihnachtsessen-Umfrage anlegen
 npm run dev                       # http://localhost:3000
 ```
+
+`npm run seed:users` legt die Konten der Kollegen an (Namen stehen in
+`scripts/seed-users.ts`) bzw. setzt deren Passwort auf **`start123`** und
+verlangt beim ersten Login ein eigenes. Bestehende Konten behalten Rolle und
+E-Mail. Mehrfach aufrufbar. Achtung: Steht dein eigener Name in der Liste,
+wird auch dein Passwort zurückgesetzt.
 
 Die Weihnachtsessen-Umfrage gibt es als **fertige Vorlage** – entweder per
 Knopf „Jetzt anlegen" oben im Admin-Bereich (kein Terminal nötig) oder per
