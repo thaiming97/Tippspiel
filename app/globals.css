@@ -9,11 +9,11 @@
 body {
   @apply font-sans text-ink antialiased;
   min-height: 100vh;
-  background-color: #f5f4ee;
-  /* Helles „Papier" mit zwei zarten Farb-Halos – Energie ohne Unruhe. */
+  /* Warmes Papier wie im Logo, mit zwei zarten Farb-Halos. */
+  background-color: #fbf6ec;
   background-image:
-    radial-gradient(820px 460px at 100% -6%, rgba(184, 242, 61, 0.22), transparent 60%),
-    radial-gradient(760px 520px at -6% 4%, rgba(10, 125, 79, 0.1), transparent 55%);
+    radial-gradient(820px 460px at 100% -6%, rgba(30, 58, 92, 0.1), transparent 60%),
+    radial-gradient(760px 520px at -6% 4%, rgba(232, 99, 46, 0.09), transparent 58%);
   background-attachment: fixed;
 }
 
@@ -29,20 +29,16 @@ body {
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center rounded-full bg-pitch px-5 py-2.5 text-sm font-semibold text-white shadow-card transition-all duration-200 hover:bg-pitch-dark hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] disabled:opacity-50;
+    @apply inline-flex items-center justify-center rounded-full bg-ff-navy px-5 py-2.5 text-sm font-semibold text-white shadow-card transition-all duration-200 hover:bg-ff-navy-dark hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] disabled:opacity-50;
   }
-  .btn-lime {
-    @apply inline-flex items-center justify-center rounded-full bg-lime px-5 py-2.5 text-sm font-bold text-ink shadow-glow transition-all duration-200 hover:bg-lime-dark hover:-translate-y-0.5 active:scale-[0.98] disabled:opacity-50;
-  }
-  .btn-gold {
-    @apply inline-flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-bold text-ink shadow-glow-gold transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] disabled:opacity-50;
-    background-image: linear-gradient(135deg, #ffd45e 0%, #f4b400 100%);
+  .btn-accent {
+    @apply inline-flex items-center justify-center rounded-full bg-ff-orange-gradient px-5 py-2.5 text-sm font-bold text-white shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover active:translate-y-0 active:scale-[0.98] disabled:opacity-50;
   }
   .btn-ghost {
-    @apply inline-flex items-center justify-center rounded-full border border-ink/[0.12] bg-white px-4 py-2 text-sm font-medium text-ink transition hover:border-ink/[0.25] hover:bg-ink/[0.03];
+    @apply inline-flex items-center justify-center rounded-full border border-ff-navy/[0.15] bg-white px-4 py-2 text-sm font-medium text-ink transition hover:border-ff-navy/[0.3] hover:bg-ff-navy/[0.03] disabled:opacity-50;
   }
   .input {
-    @apply w-full rounded-xl border border-ink/[0.12] bg-white px-3.5 py-2.5 text-sm text-ink transition placeholder:text-ink/[0.35] focus:border-pitch focus:outline-none focus:ring-4 focus:ring-pitch/[0.12];
+    @apply w-full rounded-xl border border-ink/[0.12] bg-white px-3.5 py-2.5 text-sm text-ink transition placeholder:text-ink/[0.35] focus:border-ff-orange focus:outline-none focus:ring-4 focus:ring-ff-orange/[0.15];
   }
   .card {
     @apply rounded-3xl border border-ink/[0.06] bg-white p-5 text-ink shadow-card transition-all duration-300;
@@ -50,48 +46,36 @@ body {
   .label {
     @apply mb-1.5 block text-sm font-medium text-ink-soft;
   }
-  /* Label-Chip, z.B. Spielphase. */
+  /* Label-Chip, z.B. Status einer Umfrage. */
   .chip {
-    @apply inline-flex items-center gap-1 rounded-full bg-pitch/[0.08] px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-pitch;
+    @apply inline-flex items-center gap-1 rounded-full bg-ff-navy/[0.08] px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-ff-navy;
   }
-  /* Kleine Überschrift mit Akzent-Balken davor (Matchday-Look). */
+  /* Kleine Überschrift mit Akzent-Balken davor. */
   .eyebrow {
     @apply flex items-center gap-2.5 text-xs font-bold uppercase tracking-[0.18em] text-ink-soft;
   }
   .eyebrow::before {
     content: "";
-    @apply h-4 w-1 rounded-full bg-lime;
+    @apply h-4 w-1 rounded-full bg-ff-orange;
   }
 }
 
-/* Die Weihnachtsessen-Seite bringt ihr eigenes, warmes Papier mit. Der Umweg
-   über den body ist nötig, weil das Seiten-Layout in einem animierten (also
-   transformierten) Container liegt – darin hängt `position: fixed` nicht mehr
-   am Fenster, sondern an der Inhaltsspalte. Die Seite setzt dafür ein
-   unsichtbares Markierungs-Element mit der Klasse `xmas-paper`. */
-body:has(.xmas-paper) {
-  background-color: #fbf6ec;
-  background-image:
-    radial-gradient(820px 460px at 100% -6%, rgba(30, 58, 92, 0.1), transparent 60%),
-    radial-gradient(760px 520px at -6% 4%, rgba(232, 99, 46, 0.09), transparent 58%);
-}
-
 ::selection {
-  background: rgba(184, 242, 61, 0.7);
-  color: #0c1f17;
+  background: rgba(232, 99, 46, 0.25);
+  color: #1e3a5c;
 }
 ::-webkit-scrollbar {
   width: 12px;
   height: 12px;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(10, 125, 79, 0.25);
+  background: rgba(30, 58, 92, 0.25);
   border: 3px solid transparent;
   background-clip: content-box;
   border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(10, 125, 79, 0.45);
+  background: rgba(30, 58, 92, 0.45);
   background-clip: content-box;
 }
 
@@ -102,24 +86,5 @@ body:has(.xmas-paper) {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
-  }
-
-  /* Ausnahme: Die Sieger-Feier wird bewusst per Klick aufs Medaillen-Symbol
-     bzw. bei einem Führungswechsel ausgelöst (kein Dauer-/Ambiente-Effekt). Sie
-     soll auch dann sichtbar laufen, wenn „Animationen reduzieren" aktiv ist –
-     sonst blitzt sie in 0,01 ms unsichtbar vorbei. Höhere Spezifität (Klasse > *)
-     gewinnt trotz beidseitigem !important. */
-  .leader-celebration .celebration-ball {
-    transition-duration: 450ms !important;
-  }
-  .leader-celebration .celebration-name {
-    transition-duration: 500ms !important;
-  }
-
-  /* Ausnahme: Der Rangliste<->Tipp-Detail-Slide wird bewusst per Antippen
-     ausgelöst und soll auch bei „Animationen reduzieren" weich gleiten. */
-  .lb-shell,
-  .lb-track {
-    transition-duration: 460ms !important;
   }
 }

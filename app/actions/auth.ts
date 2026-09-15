@@ -71,7 +71,6 @@ export async function changePasswordAction(
   const current = String(formData.get("current") ?? "");
   const next = String(formData.get("next") ?? "");
   const confirm = String(formData.get("confirm") ?? "");
-  const scope = formData.get("scope") === "all" ? "all" : "group_e";
 
   if (next.length < 8) {
     return { error: "Das neue Passwort muss mindestens 8 Zeichen haben." };
@@ -91,7 +90,6 @@ export async function changePasswordAction(
   await db().collection(Collections.users).doc(user!.id).update({
     passwordHash: await hashPassword(next),
     mustChangePassword: false,
-    scope,
   });
 
   // Session mit aktualisiertem Flag neu setzen.

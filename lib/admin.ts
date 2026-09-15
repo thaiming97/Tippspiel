@@ -2,9 +2,8 @@ import "server-only";
 import { randomBytes } from "crypto";
 import { db, Collections } from "./firebaseAdmin";
 import { hashPassword } from "./auth";
-import { recomputePoints } from "./data";
 import { normalizeUsername } from "./username";
-import type { MatchDoc, Role, Scope, UserDoc } from "./types";
+import type { Role, UserDoc } from "./types";
 
 /** Erzeugt ein gut lesbares Startpasswort. */
 export function generateStartPassword(): string {
@@ -12,7 +11,7 @@ export function generateStartPassword(): string {
 }
 
 /**
- * Legt einen Benutzer mit Startpasswort an. Beim ersten Login muss dieser
+ * Legt einen Organisator mit Startpasswort an. Beim ersten Login muss dieses
  * geändert werden (mustChangePassword = true).
  */
 export async function createUser(input: {
@@ -20,7 +19,6 @@ export async function createUser(input: {
   startPassword: string;
   email?: string;
   role?: Role;
-  scope?: Scope;
 }): Promise<{ id: string }> {
   const name = input.name.trim();
   const username = normalizeUsername(name);
@@ -41,8 +39,7 @@ export async function createUser(input: {
     name,
     email: input.email?.trim().toLowerCase() || "",
     passwordHash: await hashPassword(input.startPassword),
-    role: input.role ?? "user",
-    scope: input.scope ?? "group_e",
+    role: input.role ?? "admin",
     mustChangePassword: true,
     createdAt: Date.now(),
   };
@@ -57,14 +54,6 @@ export async function listUsers(): Promise<UserDoc[]> {
 
 export async function deleteUser(userId: string): Promise<void> {
   await db().collection(Collections.users).doc(userId).delete();
-  // Tipps des Nutzers ebenfalls entfernen.
-  const bets = await db()
-    .collection(Collections.bets)
-    .where("userId", "==", userId)
-    .get();
-  const batch = db().batch();
-  bets.docs.forEach((d) => batch.delete(d.ref));
-  await batch.commit();
 }
 
 /** Setzt das Passwort eines Nutzers zurück (neues Startpasswort). */
@@ -76,83 +65,4 @@ export async function resetUserPassword(
     passwordHash: await hashPassword(startPassword),
     mustChangePassword: true,
   });
-}
-
-/** Legt ein Spiel manuell an. */
-export async function createMatch(input: {
-  homeTeam: string;
-  awayTeam: string;
-  stage: string;
-  kickoff: string;
-}): Promise<void> {
-  const ref = db().collection(Collections.matches).doc();
-  const match: Omit<MatchDoc, "id"> = {
-    externalId: null,
-    homeTeam: input.homeTeam.trim(),
-    awayTeam: input.awayTeam.trim(),
-    stage: input.stage.trim(),
-    kickoff: new Date(input.kickoff).toISOString(),
-    status: "SCHEDULED",
-    homeScore: null,
-    awayScore: null,
-  };
-  await ref.set(match);
-}
-
-/** Trägt ein Endergebnis manuell ein und wertet neu aus. */
-export async function setMatchResult(
-  matchId: string,
-  homeScore: number,
-  awayScore: number,
-): Promise<void> {
-  await db().collection(Collections.matches).doc(matchId).update({
-    homeScore,
-    awayScore,
-    status: "FINISHED",
-  });
-  await recomputePoints();
-}
-
-export async function deleteMatch(matchId: string): Promise<void> {
-  await db().collection(Collections.matches).doc(matchId).delete();
-}
-
-/**
- * Setzt/ändert den Tipp eines Spielers – auch nach Anstoß (Admin-Korrektur).
- * Punkte werden anschließend neu berechnet.
- */
-export async function adminSetBet(
-  userId: string,
-  matchId: string,
-  homeScore: number,
-  awayScore: number,
-): Promise<void> {
-  if (!Number.isInteger(homeScore) || !Number.isInteger(awayScore)) {
-    throw new Error("Ungültiges Ergebnis");
-  }
-  if (homeScore < 0 || awayScore < 0 || homeScore > 99 || awayScore > 99) {
-    throw new Error("Ungültiges Ergebnis");
-  }
-  const betId = `${userId}_${matchId}`;
-  await db().collection(Collections.bets).doc(betId).set(
-    {
-      userId,
-      matchId,
-      homeScore,
-      awayScore,
-      points: null,
-      updatedAt: Date.now(),
-    },
-    { merge: true },
-  );
-  await recomputePoints();
-}
-
-/** Entfernt den Tipp eines Spielers zu einem Spiel. */
-export async function adminDeleteBet(
-  userId: string,
-  matchId: string,
-): Promise<void> {
-  await db().collection(Collections.bets).doc(`${userId}_${matchId}`).delete();
-  await recomputePoints();
 }
