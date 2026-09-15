@@ -1,48 +1,63 @@
-# ⚽ WM-Tippspiel 2026
+# 🍽️ FF Entertainment
 
-Ein Tippspiel für die Arbeit zur Fußball-WM 2026. Kolleginnen und Kollegen
-tippen Spielergebnisse, Punkte werden automatisch vergeben, und eine
-**Live-Rangliste** zeigt jederzeit, wer führt.
+Terminabstimmungen für **Feli & Felix · Essen & Ausflüge** – die eigene
+Doodle-Alternative der Abteilung. Wer abstimmt, braucht **kein Konto**; wer
+Umfragen anlegt und auswertet, meldet sich als **Organisator** an.
 
 ## Funktionen
 
-- **Login** mit E-Mail & Passwort. Benutzer werden vom Admin angelegt und
-  bekommen ein **Startpasswort**, das bei der **ersten Anmeldung geändert**
-  werden muss. Beim ersten Login wählt jeder seinen **Tipp-Umfang**:
-  - **Nur Gruppe E** (1€-Pool) oder **Alle Spiele**.
-  - Später jederzeit unter **Einstellungen** änderbar.
-- **Tipps & Punkte** (Wertung wie bei **CHECK24**): Ergebnis tippen bis zum
-  Anstoß.
-  - exaktes Ergebnis → **4 Punkte**
-  - richtige Tordifferenz (kein Remis) → **3 Punkte**
-  - richtige Tendenz → **2 Punkte**
-- **Live-Rangliste** (alle 15 Sek.) – mit **getrennter Auswertung** für
-  „Nur Gruppe E" und „Alle Spiele".
-- **Admin-Bereich** (kann alles): Benutzer anlegen/zurücksetzen/löschen,
-  Spiele anlegen, Ergebnisse pflegen, Sync starten.
-- **Ergebnisse automatisch aus dem Internet** über [football-data.org]
-  – per Knopfdruck im Admin oder zeitgesteuert per Cron.
-- **🎄 Weihnachtsessen-Umfrage** unter `/weihnachtsessen` – die Doodle-Alternative
-  der Abteilung: **ohne Anmeldung** erreichbar, Auswertung im Admin-Bereich.
+- **Umfragen selbst zusammenstellen**: Titel, Einleitung, Termine und eine
+  Auswahl (Restaurants, Ausflugsziele …) legt der Organisator im Admin-Bereich
+  fest – beliebig viele Umfragen parallel.
+- **Termin-Generator**: „jeden Do und Fr vom 12.11. bis 18.12." erzeugt die
+  Terminliste auf Knopfdruck; einzelne Tage lassen sich ergänzen oder entfernen.
+- **Abstimmen ohne Anmeldung**: je Termin **Ja / Wenn nötig / Nein**,
+  Mehrfachauswahl bei den Optionen, optionale Anmerkung. Derselbe Name
+  bearbeitet die eigene Antwort statt eine zweite Zeile anzulegen.
+- **Auswertung im Doodle-Stil**: beste Termine nach Zusagen, Stimmen je Option,
+  vollständige Übersichts-Tabelle.
+- **Steuerung**: Abstimmung schließen, Stand vor den Teilnehmern verbergen,
+  endgültigen Termin + Option + Hinweis festlegen (erscheint als Banner auf der
+  öffentlichen Seite), einzelne Antworten oder ganze Umfragen löschen.
+- **Optik je Umfrage**: „Normal" oder „Weihnachtlich" (Schnee & Tanne).
+
+## Seiten
+
+| Seite | Zweck | Zugang |
+| --- | --- | --- |
+| `/` | Übersicht der laufenden Umfragen | öffentlich |
+| `/umfrage/<slug>` | abstimmen + aktueller Stand | öffentlich |
+| `/login` | Anmeldung der Organisatoren | – |
+| `/admin` | Umfragen anlegen und verwalten | nur Organisatoren |
+| `/admin/umfragen/<slug>` | auswerten, steuern, bearbeiten | nur Organisatoren |
+| `/admin/users` | Organisatoren-Konten | nur Organisatoren |
+
+Der Link einer Umfrage ist ihr Slug (aus dem Titel erzeugt) und bleibt stabil,
+auch wenn der Titel später geändert wird.
 
 ## Tech-Stack
 
 - **Next.js 14** (App Router) + **TypeScript** + **Tailwind CSS**
-- **Firebase / Firestore** als Datenbank (Zugriff nur serverseitig über das
-  Firebase Admin SDK)
+- **Firebase / Firestore** als Datenbank – Zugriff ausschließlich serverseitig
+  über das Firebase Admin SDK (`firestore.rules` sperrt Client-Zugriffe
+  komplett). Antworten und Umfragen liegen im Next.js Data Cache und werden bei
+  jeder Änderung gezielt entwertet.
 - Eigene Authentifizierung (bcrypt-Passwörter, signierte JWT-Session-Cookies)
+
+Datenmodell: `polls/<slug>` je Umfrage, darunter die Unter-Sammlung
+`responses/<normalisierter Name>` mit den Antworten. `users` enthält die
+Organisatoren-Konten.
 
 ## Einrichtung
 
-### 1. Firebase-Projekt anlegen
+### 1. Firebase-Projekt
 
 1. In der [Firebase Console](https://console.firebase.google.com) ein Projekt
    anlegen und **Firestore** aktivieren (Modus: Produktion).
 2. **Projekteinstellungen → Dienstkonten → Neuen privaten Schlüssel
-   generieren**. Aus der JSON-Datei brauchst du `project_id`, `client_email`
-   und `private_key`.
-3. Die Datei `firestore.rules` als Firestore-Regeln hinterlegen (Client-Zugriff
-   ist komplett gesperrt – die App schreibt nur über das Admin SDK).
+   generieren**. Daraus werden `project_id`, `client_email` und `private_key`
+   gebraucht.
+3. Die Datei `firestore.rules` als Firestore-Regeln hinterlegen.
 
 ### 2. Umgebungsvariablen
 
@@ -50,121 +65,42 @@ tippen Spielergebnisse, Punkte werden automatisch vergeben, und eine
 cp .env.example .env.local
 ```
 
-Dann `.env.local` ausfüllen:
-
 - `AUTH_SECRET` – langer Zufallsstring (`openssl rand -hex 32`)
 - `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`
-- `FOOTBALL_DATA_API_TOKEN` – kostenloses Token von
-  [football-data.org](https://www.football-data.org/client/register)
-  (optional – ohne Token können Ergebnisse manuell im Admin eingetragen werden)
-- `CRON_SECRET` – Geheimnis für den automatischen Sync
-- `ADMIN_EMAIL`, `ADMIN_NAME`, `ADMIN_PASSWORD` – für den ersten Admin
+- `ADMIN_EMAIL`, `ADMIN_NAME`, `ADMIN_PASSWORD` – für den ersten Organisator
 
-### 3. Installieren & Daten anlegen
+### 3. Installieren & starten
 
 ```bash
 npm install
-npm run create-admin   # legt den ersten Admin an
-npm run seed           # legt Teilnehmer, Spiele + alle Tipps an
+npm run create-admin              # ersten Organisator anlegen
+npm run seed:weihnachtsessen      # optional: Weihnachtsessen-Umfrage anlegen
+npm run dev                       # http://localhost:3000
 ```
 
-`npm run seed` legt an:
-
-- alle **14 Teilnehmer** aus dem Excel-Tippblatt (mit zufälligem Startpasswort –
-  die Liste wird am Ende ausgegeben, bitte notieren & verteilen),
-- die **6 Gruppe-E-Spiele** inkl. der echten Ergebnisse der bereits gespielten
-  Partien (Deutschland 7:1 Curaçao, Elfenbeinküste 1:0 Ecuador),
-- weitere WM-Spiele ab 15.06. für den Modus „Alle Spiele",
-- **alle abgegebenen Tipps** inkl. Punkteberechnung.
-
-> Hinweis: Die E-Mail-Adressen der Teilnehmer sind Platzhalter
-> (`name@wm-tippspiel.local`) – sie dienen nur als Login. Bei Bedarf vor dem
-> Verteilen in `data/groupE.ts` anpassen.
-
-### 4. Starten
-
-```bash
-npm run dev            # http://localhost:3000
-```
-
-Mit den Admin-Zugangsdaten anmelden → unter **Admin** weitere Benutzer anlegen
-und (falls Token gesetzt) den Sync starten, um den vollständigen Spielplan und
-Live-Ergebnisse zu laden.
-
-## 🎄 Weihnachtsessen-Umfrage
-
-Terminabstimmung für das Abteilungs-Weihnachtsessen – als Ersatz für ein
-kostenpflichtiges Doodle. Gestaltet mit dem Logo von **FF Entertainment**
-(`public/ff-entertainment.jpg`).
-
-| Seite | Zweck | Zugang |
-| --- | --- | --- |
-| `/weihnachtsessen` | abstimmen + aktueller Stand | **öffentlich, ohne Anmeldung** |
-| `/admin/weihnachtsessen` | auswerten, Termin festlegen, Antworten löschen | nur Admins |
-
-**Für die Kollegen:** Link teilen (im Admin-Bereich gibt es dafür einen
-Knopf „Link kopieren"), Namen eintragen, je Termin **Ja / Wenn nötig / Nein**
-wählen und ankreuzen, welche Restaurants in Frage kommen. Wer denselben Namen
-noch einmal eingibt, bearbeitet seine eigene Antwort – es entsteht keine zweite
-Zeile.
-
-**Für den Organisator:** Im Admin-Bereich stehen die besten Termine (sortiert
-nach Zusagen), die Restaurant-Wahl und die vollständige Übersicht. Dort lassen
-sich die Abstimmung schließen, der Stand vor den Teilnehmern verbergen und der
-endgültige Termin samt Restaurant und Hinweis festlegen – das erscheint dann
-oben auf der öffentlichen Seite.
-
-Termine und Restaurants stehen in `lib/dinner.ts`:
-
-- `DINNER_RANGE` – Zeitraum (aktuell 12.11.–18.12.), daraus werden **alle
-  Donnerstage und Freitage** erzeugt.
-- `RESTAURANTS` – die Auswahl (Krone Unsleben, Braunsmühle Bischofsheim,
-  Brückenschenke Wülfershausen).
-
-Gespeichert wird in den Firestore-Sammlungen `dinnerResponses` (eine Antwort je
-normalisiertem Namen) und `dinnerSettings`. Wie im restlichen Projekt läuft der
-Zugriff nur serverseitig über das Admin SDK; die Antworten liegen im Next.js
-Data Cache und werden bei jeder Änderung gezielt entwertet.
-
-## Automatischer Ergebnis-Sync
-
-Der Endpunkt `GET /api/cron/sync` zieht Spielplan + Ergebnisse und berechnet die
-Punkte neu. Er ist per `CRON_SECRET` geschützt:
-
-```bash
-curl -H "Authorization: Bearer $CRON_SECRET" https://<deine-domain>/api/cron/sync
-```
-
-Bei einem Deploy auf **Vercel** ist in `vercel.json` bereits ein Cron-Job
-hinterlegt (alle 10 Minuten). Vercel sendet das `CRON_SECRET` automatisch als
-Bearer-Token mit. Alternativ funktioniert jeder andere Scheduler (GitHub
-Actions, Cloud Scheduler, Cronjob.org …).
+`npm run seed:weihnachtsessen` legt die Umfrage „Weihnachtsessen der
+Abteilung" mit allen Donnerstagen und Freitagen vom 12.11. bis 18.12. sowie den
+drei Restaurants an und übernimmt Antworten aus der früheren, fest
+verdrahteten Fassung. Das Skript ist mehrfach aufrufbar und überschreibt eine
+bestehende Umfrage nicht.
 
 ## Deployment
 
-### Variante A: Vercel (kostenlos, ohne Kreditkarte) – empfohlen
+### Variante A: Vercel – empfohlen
 
-Die App läuft bei Vercel, die Datenbank bleibt in Firebase/Firestore.
+1. Auf [vercel.com](https://vercel.com) mit GitHub anmelden → Projekt
+   importieren.
+2. Unter **Environment Variables** eintragen: `AUTH_SECRET`,
+   `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`.
+3. **Deploy**.
 
-1. Auf [vercel.com](https://vercel.com) mit GitHub anmelden → **Add New… → Project**
-   → Repo importieren → Branch wählen.
-2. Unter **Environment Variables** eintragen (Werte aus deinem Service-Account):
-   `AUTH_SECRET`, `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`,
-   `FIREBASE_PRIVATE_KEY`, `CRON_SECRET` und optional
-   `FOOTBALL_DATA_API_TOKEN` + `FOOTBALL_DATA_COMPETITION=WC`.
-3. **Deploy**. Du bekommst eine URL.
+### Variante B: Firebase App Hosting (Blaze-Tarif)
 
-Automatischer Ergebnis-Sync läuft über die mitgelieferte **GitHub-Action**
-(`.github/workflows/sync-results.yml`, alle 10 Min). Dafür im GitHub-Repo unter
-**Settings → Secrets and variables → Actions** zwei Secrets anlegen:
-`APP_URL` (deine Vercel-URL) und `CRON_SECRET` (gleicher Wert wie bei Vercel).
+Konfiguration liegt in `apphosting.yaml`; `AUTH_SECRET` per
+`firebase apphosting:secrets:set` anlegen und das Backend in der Console mit
+dem GitHub-Repo verbinden.
 
-### Variante B: Firebase App Hosting (benötigt Blaze-Tarif)
-
-Firebase App Hosting läuft nur im **Blaze-Tarif** (Kreditkarte nötig, Kosten für
-dieses Tippspiel praktisch 0 €). Konfiguration liegt in `apphosting.yaml`.
-Secrets `AUTH_SECRET` und `CRON_SECRET` per
-`firebase apphosting:secrets:set` anlegen, Backend in der Console mit dem
-GitHub-Repo verbinden. Cron z.B. über Cloud Scheduler auf `/api/cron/sync`.
-
-[football-data.org]: https://www.football-data.org
+> Der Firebase-Projektname (`tippspiel-vorserie`) stammt noch aus der
+> Vorgeschichte des Repos. Er ist nur die Datenbank-Adresse und für die
+> Besucher nicht sichtbar – ein Umzug wäre ein neues Firebase-Projekt samt
+> Datenübernahme.

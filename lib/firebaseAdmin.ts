@@ -50,21 +50,11 @@ export function db(): Firestore {
 
 // Firestore-Sammlungen an einer Stelle gebündelt.
 export const Collections = {
+  /** Organisatoren-Konten (Login für den Admin-Bereich). */
   users: "users",
-  matches: "matches",
-  bets: "bets",
-  // Vorberechnete Ranglisten (1 Dokument statt der ganzen DB pro Aufruf).
-  standings: "standings",
-  // Chat-Nachrichten des Community-Bereichs.
-  messages: "messages",
-  // Antworten der Weihnachtsessen-Umfrage (Doc-ID = normalisierter Name).
-  dinnerResponses: "dinnerResponses",
-  // Einstellungen der Weihnachtsessen-Umfrage (ein Dokument).
-  dinnerSettings: "dinnerSettings",
+  /** Umfragen; Doc-ID ist der Slug aus dem Link. */
+  polls: "polls",
 } as const;
 
-/** Doc-ID des einzigen Ranglisten-Caches in der Collection "standings". */
-export const STANDINGS_DOC = "current";
-
-/** Doc-ID der Einstellungen in der Collection "dinnerSettings". */
-export const DINNER_SETTINGS_DOC = "current";
+/** Unter-Sammlung einer Umfrage mit den abgegebenen Antworten. */
+export const RESPONSES = "responses";

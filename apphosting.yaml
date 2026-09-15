@@ -20,23 +20,7 @@ env:
     availability:
       - RUNTIME
 
-  - variable: CRON_SECRET
-    secret: CRON_SECRET
-    availability:
-      - RUNTIME
-
   - variable: FIREBASE_PROJECT_ID
     value: tippspiel-vorserie
     availability:
       - RUNTIME
-
-  - variable: FOOTBALL_DATA_COMPETITION
-    value: WC
-    availability:
-      - RUNTIME
-
-  # Optional – erst aktivieren, wenn ein Token-Secret angelegt wurde:
-  # - variable: FOOTBALL_DATA_API_TOKEN
-  #   secret: FOOTBALL_DATA_API_TOKEN
-  #   availability:
-  #     - RUNTIME

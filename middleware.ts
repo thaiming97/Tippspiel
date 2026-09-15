@@ -5,10 +5,10 @@ const COOKIE_NAME = "wm_session";
 const PUBLIC_PATHS = ["/login"];
 /**
  * Offene Bereiche: ohne Anmeldung erreichbar UND ohne Umleitung für
- * Angemeldete. Die Weihnachtsessen-Umfrage soll jeder Kollege per Link
- * öffnen können – auch ohne Tippspiel-Konto.
+ * Angemeldete. Umfragen soll jeder per Link öffnen können – ein Konto
+ * braucht nur, wer Umfragen anlegt und auswertet.
  */
-const OPEN_PATHS = ["/weihnachtsessen"];
+const OPEN_PATHS = ["/", "/umfrage", "/weihnachtsessen"];
 
 async function readSession(req: NextRequest) {
   const token = req.cookies.get(COOKIE_NAME)?.value;

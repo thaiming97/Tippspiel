@@ -1,9 +1,6 @@
-/** Gemeinsame Typdefinitionen für das Tippspiel. */
+/** Gemeinsame Typdefinitionen für FF Entertainment. */
 
 export type Role = "admin" | "user";
-
-/** Tipp-Umfang: nur Gruppe E (1€-Pool) oder alle Spiele. */
-export type Scope = "group_e" | "all";
 
 export interface UserDoc {
   id: string;
@@ -14,118 +11,80 @@ export interface UserDoc {
   name: string;
   passwordHash: string;
   role: Role;
-  /** Für welche Spiele der Nutzer tippt/gewertet wird. */
-  scope: Scope;
   /** true, solange der Nutzer sein Startpasswort noch nicht geändert hat. */
   mustChangePassword: boolean;
   createdAt: number;
   /** Zeitpunkt des letzten erfolgreichen Logins (ms seit Epoch). */
   lastLoginAt?: number;
-  /**
-   * Zeitpunkt der letzten Aktivität (ms seit Epoch). Wird bei jedem
-   * authentifizierten Seitenaufruf gedrosselt aktualisiert – im Gegensatz zu
-   * lastLoginAt spiegelt das „zuletzt online" wider, auch wenn man eingeloggt
-   * bleibt.
-   */
+  /** Zeitpunkt der letzten Aktivität (ms seit Epoch), gedrosselt gepflegt. */
   lastSeenAt?: number;
 }
 
-/** Status eines Spiels (angelehnt an football-data.org). */
-export type MatchStatus =
-  | "SCHEDULED"
-  | "TIMED"
-  | "IN_PLAY"
-  | "PAUSED"
-  | "FINISHED"
-  | "POSTPONED"
-  | "CANCELLED";
+// ---------------------------------------------------------------------------
+// Umfragen (Termin- und Ortswahl, öffentlich ohne Anmeldung)
+// ---------------------------------------------------------------------------
 
-export interface MatchDoc {
+/** Antwort zu einem einzelnen Termin. */
+export type Vote = "yes" | "maybe" | "no";
+
+/** Eine Auswahl-Option, z.B. ein Restaurant oder ein Ausflugsziel. */
+export interface PollChoice {
+  /** Kurz-ID innerhalb der Umfrage (aus dem Namen erzeugt). */
   id: string;
-  /** Externe ID aus der Fußball-API (für den Sync). */
-  externalId?: number | null;
-  homeTeam: string;
-  awayTeam: string;
-  /** Gruppe/Phase, z.B. "Gruppe F" oder "Achtelfinale". */
-  stage: string;
-  /** ISO-Zeitstempel des Anstoßes. */
-  kickoff: string;
-  status: MatchStatus;
-  homeScore: number | null;
-  awayScore: number | null;
+  name: string;
+  /** Zusatz unter dem Namen, z.B. der Ort. Darf leer sein. */
+  hint: string;
 }
 
-export interface BetDoc {
-  id: string; // `${userId}_${matchId}`
-  userId: string;
-  matchId: string;
-  homeScore: number;
-  awayScore: number;
-  /** Punkte für diesen Tipp, sobald das Spiel beendet ist. */
-  points: number | null;
+/** Optik der öffentlichen Seite. */
+export type PollTheme = "weihnachten" | "neutral";
+
+/**
+ * Eine Umfrage. Die Dokument-ID ist der Slug und damit Teil des Links
+ * (`/umfrage/<slug>`) – sie steht nach dem Anlegen fest.
+ */
+export interface PollDoc {
+  id: string;
+  title: string;
+  /** Einleitungstext auf der öffentlichen Seite. */
+  description: string;
+  theme: PollTheme;
+  /** Zur Wahl stehende Termine als `YYYY-MM-DD`, chronologisch. */
+  dates: string[];
+  /** Überschrift über den Optionen, z.B. „Wo soll's hingehen?". */
+  choicesTitle: string;
+  choices: PollChoice[];
+  /** Solange offen, kann jeder abstimmen. */
+  open: boolean;
+  /** Ob alle den Stand sehen oder nur die Organisatoren. */
+  showResults: boolean;
+  /** Festgelegter Termin (`YYYY-MM-DD`) oder null. */
+  finalDate: string | null;
+  /** Festgelegte Option (Choice-ID) oder null. */
+  finalChoice: string | null;
+  /** Hinweis vom Organisator, z.B. „Treffpunkt 19:00 Uhr". */
+  note: string;
+  createdAt: number;
   updatedAt: number;
 }
 
-/** Name der Phase, anhand derer Gruppe-E-Spiele erkannt werden. */
-export const GROUP_E_STAGE = "Gruppe E";
-
-export interface StandingRow {
-  userId: string;
-  name: string;
-  points: number;
-  /** Anzahl exakt richtiger Tipps. */
-  exact: number;
-  /** Anzahl gewerteter (beendeter) Spiele. */
-  played: number;
-}
-
-/** Eine Chat-Nachricht im Community-Bereich. */
-export interface ChatMessage {
-  id: string;
-  /** Verfasser (User-ID) – zum Erkennen eigener Nachrichten. */
-  userId: string;
-  /** Anzeigename zum Zeitpunkt des Schreibens (denormalisiert). */
-  name: string;
-  text: string;
-  createdAt: number;
-}
-
-// ---------------------------------------------------------------------------
-// Weihnachtsessen-Umfrage (öffentlich, ohne Anmeldung)
-// ---------------------------------------------------------------------------
-
-/** Antwort zu einem Termin. */
-export type DinnerVote = "yes" | "maybe" | "no";
-
-/** Eine abgegebene Antwort. Doc-ID ist der normalisierte Name. */
-export interface DinnerResponseDoc {
+/**
+ * Eine abgegebene Antwort. Die Dokument-ID ist der normalisierte Name, damit
+ * dieselbe Person ihre Antwort bearbeitet statt eine zweite anzulegen.
+ */
+export interface ResponseDoc {
   id: string;
   /** Anzeigename, so wie eingegeben. */
   name: string;
   /**
-   * Termin (`YYYY-MM-DD`) -> Stimme. „Nein" wird nicht gespeichert, ein
-   * fehlender Schlüssel bedeutet also „passt nicht".
+   * Termin -> Stimme. „Nein" wird nicht gespeichert, ein fehlender
+   * Schlüssel bedeutet also „passt nicht".
    */
-  dates: Record<string, DinnerVote>;
-  /** IDs der gewählten Restaurants (Mehrfachauswahl). */
-  restaurants: string[];
+  dates: Record<string, Vote>;
+  /** IDs der gewählten Optionen (Mehrfachauswahl). */
+  choices: string[];
   /** Freiwillige Anmerkung, z.B. „erst ab 19 Uhr". */
   comment: string;
   createdAt: number;
-  updatedAt: number;
-}
-
-/** Einstellungen der Umfrage (ein einzelnes Dokument). */
-export interface DinnerSettingsDoc {
-  /** Solange offen, kann jeder abstimmen. */
-  open: boolean;
-  /** Ob alle den Überblick über die Antworten sehen. */
-  showResults: boolean;
-  /** Festgelegter Termin (`YYYY-MM-DD`) oder null. */
-  finalDate: string | null;
-  /** Festgelegtes Restaurant (ID) oder null. */
-  finalRestaurant: string | null;
-  /** Hinweis vom Organisator, z.B. „Treffpunkt 19:00 Uhr". */
-  note: string;
   updatedAt: number;
 }

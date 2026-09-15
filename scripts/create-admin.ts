@@ -1,5 +1,5 @@
 /**
- * Legt den ersten Admin-Benutzer an (oder macht einen bestehenden zum Admin).
+ * Legt den ersten Organisator an (oder macht einen bestehenden zum Admin).
  * Aufruf:  npm run create-admin
  *
  * Werte aus .env.local: ADMIN_EMAIL, ADMIN_NAME, ADMIN_PASSWORD
@@ -48,7 +48,6 @@ async function main() {
     name,
     passwordHash: await bcrypt.hash(password, 10),
     role: "admin" as const,
-    scope: "all" as const,
     mustChangePassword: false,
     createdAt: Date.now(),
   };
