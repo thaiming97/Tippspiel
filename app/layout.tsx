@@ -64,6 +64,7 @@ export default async function RootLayout({
                 <NavLink href="/matches">Spiele &amp; Tipps</NavLink>
                 <NavLink href="/leaderboard">Rangliste</NavLink>
                 <NavLink href="/community">Community</NavLink>
+                <NavLink href="/weihnachtsessen">🎄 Essen</NavLink>
                 <NavLink href="/help">Hilfe</NavLink>
                 <NavLink href="/settings">Einstellungen</NavLink>
                 {session!.role === "admin" && <NavLink href="/admin">Admin</NavLink>}

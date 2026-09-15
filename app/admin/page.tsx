@@ -40,6 +40,13 @@ export default async function AdminHome() {
             Spiele anlegen, Ergebnisse pflegen, Sync aus dem Internet starten.
           </p>
         </Link>
+        <Link href="/admin/weihnachtsessen" className="card hover:bg-gray-50">
+          <div className="font-semibold">🎄 Weihnachtsessen</div>
+          <p className="text-sm text-gray-500">
+            Umfrage zu Termin &amp; Restaurant auswerten, Termin festlegen,
+            Link teilen.
+          </p>
+        </Link>
         <Link href="/admin/tips" className="card hover:bg-gray-50">
           <div className="font-semibold">✏️ Tipps bearbeiten</div>
           <p className="text-sm text-gray-500">

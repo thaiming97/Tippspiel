@@ -64,6 +64,18 @@ body {
   }
 }
 
+/* Die Weihnachtsessen-Seite bringt ihr eigenes, warmes Papier mit. Der Umweg
+   über den body ist nötig, weil das Seiten-Layout in einem animierten (also
+   transformierten) Container liegt – darin hängt `position: fixed` nicht mehr
+   am Fenster, sondern an der Inhaltsspalte. Die Seite setzt dafür ein
+   unsichtbares Markierungs-Element mit der Klasse `xmas-paper`. */
+body:has(.xmas-paper) {
+  background-color: #fbf6ec;
+  background-image:
+    radial-gradient(820px 460px at 100% -6%, rgba(30, 58, 92, 0.1), transparent 60%),
+    radial-gradient(760px 520px at -6% 4%, rgba(232, 99, 46, 0.09), transparent 58%);
+}
+
 ::selection {
   background: rgba(184, 242, 61, 0.7);
   color: #0c1f17;

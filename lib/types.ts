@@ -89,3 +89,43 @@ export interface ChatMessage {
   text: string;
   createdAt: number;
 }
+
+// ---------------------------------------------------------------------------
+// Weihnachtsessen-Umfrage (öffentlich, ohne Anmeldung)
+// ---------------------------------------------------------------------------
+
+/** Antwort zu einem Termin. */
+export type DinnerVote = "yes" | "maybe" | "no";
+
+/** Eine abgegebene Antwort. Doc-ID ist der normalisierte Name. */
+export interface DinnerResponseDoc {
+  id: string;
+  /** Anzeigename, so wie eingegeben. */
+  name: string;
+  /**
+   * Termin (`YYYY-MM-DD`) -> Stimme. „Nein" wird nicht gespeichert, ein
+   * fehlender Schlüssel bedeutet also „passt nicht".
+   */
+  dates: Record<string, DinnerVote>;
+  /** IDs der gewählten Restaurants (Mehrfachauswahl). */
+  restaurants: string[];
+  /** Freiwillige Anmerkung, z.B. „erst ab 19 Uhr". */
+  comment: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/** Einstellungen der Umfrage (ein einzelnes Dokument). */
+export interface DinnerSettingsDoc {
+  /** Solange offen, kann jeder abstimmen. */
+  open: boolean;
+  /** Ob alle den Überblick über die Antworten sehen. */
+  showResults: boolean;
+  /** Festgelegter Termin (`YYYY-MM-DD`) oder null. */
+  finalDate: string | null;
+  /** Festgelegtes Restaurant (ID) oder null. */
+  finalRestaurant: string | null;
+  /** Hinweis vom Organisator, z.B. „Treffpunkt 19:00 Uhr". */
+  note: string;
+  updatedAt: number;
+}
