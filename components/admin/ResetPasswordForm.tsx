@@ -12,7 +12,7 @@ export function ResetPasswordForm({ userId }: { userId: string }) {
       {state?.password && (
         <span className="ml-2 text-xs text-green-700">
           neu:{" "}
-          <code className="rounded bg-gray-100 px-1 font-mono">
+          <code className="rounded bg-ink/[0.06] px-1 font-mono">
             {state.password}
           </code>
         </span>

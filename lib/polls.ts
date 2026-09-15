@@ -46,15 +46,31 @@ export function slugify(text: string): string {
 }
 
 /**
+ * Prüft, ob ein Wert die Form hat, die `slugify` erzeugt. Slugs kommen aus
+ * der URL bzw. aus Formularen und werden als Firestore-Dokument-ID benutzt –
+ * alles andere (etwa ein „/" aus `%2F`) würde das Admin SDK mit einem
+ * Fehler abbrechen lassen, statt sauber „nicht gefunden" zu ergeben.
+ */
+export function isSlug(value: string): boolean {
+  return /^[a-z0-9-]{1,60}$/.test(value);
+}
+
+/**
  * Normalisiert den Namen einer Antwort zur Dokument-ID: klein, getrimmt,
  * Mehrfach-Leerzeichen reduziert, Punkt am Ende entfernt.
+ *
+ * Der Schlüssel landet als Firestore-Dokument-ID in der Datenbank. Dort ist
+ * „/" nicht erlaubt und Namen der Form „__x__" sind reserviert – ein Name wie
+ * „AC/DC" würde das Speichern sonst mit einem Firestore-Fehler abbrechen.
  */
 export function nameKey(name: string): string {
   return name
     .toLowerCase()
     .trim()
     .replace(/\s+/g, " ")
-    .replace(/[.]+$/, "");
+    .replace(/[/]+/g, "-")
+    .replace(/[.]+$/, "")
+    .replace(/^__(.*)__$/, "_$1_");
 }
 
 // --- Termine -------------------------------------------------------------

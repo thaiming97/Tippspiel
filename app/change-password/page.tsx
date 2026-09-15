@@ -18,7 +18,7 @@ export default function ChangePasswordPage() {
   return (
     <div className="mx-auto mt-12 max-w-sm">
       <h1 className="mb-1 text-center text-2xl font-bold">Passwort festlegen</h1>
-      <p className="mb-6 text-center text-sm text-gray-500">
+      <p className="mb-6 text-center text-sm text-ink-soft">
         Bei der ersten Anmeldung musst du dein Startpasswort ändern.
       </p>
       <form action={formAction} className="card space-y-4">
@@ -39,8 +39,6 @@ export default function ChangePasswordPage() {
             Neues Passwort bestätigen
           </label>
           <input id="confirm" name="confirm" type="password" className="input" required />
-        </div>
-        <div className="border-t border-gray-100 pt-4">
         </div>
         {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
         <SubmitButton />

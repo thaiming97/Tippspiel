@@ -79,7 +79,7 @@ export default async function PollPage({ params }: { params: { slug: string } })
           <span className="rounded-full bg-ff-cream px-3 py-1.5 ring-1 ring-ff-navy/10">
             🔓 Ohne Anmeldung
           </span>
-          {responses.length > 0 && (
+          {poll.showResults && responses.length > 0 && (
             <span className="rounded-full bg-ff-navy px-3 py-1.5 text-white">
               👥 {responses.length}{" "}
               {responses.length === 1 ? "Antwort" : "Antworten"}

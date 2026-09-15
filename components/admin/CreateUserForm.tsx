@@ -7,7 +7,7 @@ function Btn() {
   const { pending } = useFormStatus();
   return (
     <button className="btn" disabled={pending}>
-      {pending ? "Anlegen…" : "Benutzer anlegen"}
+      {pending ? "Anlegen…" : "Organisator anlegen"}
     </button>
   );
 }
@@ -17,7 +17,9 @@ export function CreateUserForm() {
 
   return (
     <form action={formAction} className="card space-y-3">
-      <h3 className="font-semibold">Neuen Benutzer anlegen</h3>
+      <h3 className="font-display font-extrabold text-ff-navy">
+        Neuen Organisator anlegen
+      </h3>
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <label className="label">Name</label>
@@ -25,31 +27,21 @@ export function CreateUserForm() {
         </div>
         <div>
           <label className="label">
-            E-Mail <span className="text-gray-400">(optional)</span>
+            E-Mail <span className="text-ink/40">(optional)</span>
           </label>
           <input name="email" type="email" className="input" />
         </div>
         <div>
           <label className="label">
-            Startpasswort <span className="text-gray-400">(leer = Start123)</span>
+            Startpasswort <span className="text-ink/40">(leer = Start123)</span>
           </label>
           <input name="startPassword" className="input" placeholder="Start123" />
         </div>
-        <div>
-          <label className="label">Rolle</label>
-          <select name="role" className="input">
-            <option value="user">Teilnehmer</option>
-            <option value="admin">Admin</option>
-          </select>
-        </div>
-        <div>
-          <label className="label">Tipp-Umfang</label>
-          <select name="scope" className="input">
-            <option value="group_e">Nur Gruppe E (1€)</option>
-            <option value="all">Alle Spiele</option>
-          </select>
-        </div>
       </div>
+      <p className="text-xs text-ink-soft">
+        Jeder Zugang hier ist ein Organisator: anlegen, auswerten, Termin
+        festlegen. Zum Abstimmen braucht niemand ein Konto.
+      </p>
       <Btn />
       {state?.ok && (
         <div className="rounded-md bg-green-50 p-3 text-sm text-green-800">

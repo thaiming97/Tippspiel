@@ -11,6 +11,7 @@ import {
   MAX_RESPONSES,
   MAX_TITLE_LENGTH,
   cleanDates,
+  isSlug,
   nameKey,
   slugify,
   type PollTemplate,
@@ -37,8 +38,17 @@ function polls() {
   return db().collection(Collections.polls);
 }
 
+/**
+ * Dokument einer Umfrage. Der Slug kommt aus URL oder Formular, deshalb wird
+ * seine Form geprüft, bevor er als Dokument-ID verwendet wird.
+ */
+function pollDoc(slug: string) {
+  if (!isSlug(slug)) throw new Error("Diese Umfrage gibt es nicht (mehr).");
+  return polls().doc(slug);
+}
+
 function responses(slug: string) {
-  return polls().doc(slug).collection(RESPONSES);
+  return pollDoc(slug).collection(RESPONSES);
 }
 
 /** Ergänzt fehlende Felder – schützt vor älteren/teilweisen Dokumenten. */
@@ -99,9 +109,11 @@ export async function listPolls(): Promise<PollSummary[]> {
 
 /** Eine Umfrage oder null, wenn der Slug nicht existiert. */
 export async function getPoll(slug: string): Promise<PollDoc | null> {
+  // Unpassende Slugs sind schlicht „nicht gefunden" – kein Fehler.
+  if (!isSlug(slug)) return null;
   return unstable_cache(
     async () => {
-      const snap = await polls().doc(slug).get();
+      const snap = await pollDoc(slug).get();
       if (!snap.exists) return null;
       return toPoll(snap.id, snap.data() as Partial<PollDoc>);
     },
@@ -166,7 +178,9 @@ function checkInput(input: PollInput): void {
 export async function createPoll(input: PollInput): Promise<string> {
   checkInput(input);
 
-  const base = slugify(input.title) || "umfrage";
+  // Etwas Luft lassen: bei Dopplung wird "-2", "-3" … angehängt, und der
+  // fertige Slug muss noch durch isSlug() passen.
+  const base = (slugify(input.title) || "umfrage").slice(0, 50).replace(/-+$/, "");
   let slug = base;
   // Bei Dopplung eine Ziffer anhängen, damit der Link eindeutig bleibt.
   for (let i = 2; (await polls().doc(slug).get()).exists; i += 1) {
@@ -199,15 +213,14 @@ export async function createPoll(input: PollInput): Promise<string> {
 /** Ändert Titel, Beschreibung, Termine und Optionen einer Umfrage. */
 export async function updatePoll(slug: string, input: PollInput): Promise<void> {
   checkInput(input);
-  const existing = await polls().doc(slug).get();
+  const existing = await pollDoc(slug).get();
   if (!existing.exists) throw new Error("Diese Umfrage gibt es nicht (mehr).");
 
   const current = toPoll(existing.id, existing.data() as Partial<PollDoc>);
   const dates = cleanDates(input.dates);
   const choices = buildChoices(input.choices);
 
-  await polls()
-    .doc(slug)
+  await pollDoc(slug)
     .update({
       title: input.title.trim(),
       description: input.description.trim().slice(0, MAX_DESCRIPTION_LENGTH),
@@ -239,12 +252,11 @@ export async function updatePollSettings(
     note: string;
   },
 ): Promise<void> {
-  const snap = await polls().doc(slug).get();
+  const snap = await pollDoc(slug).get();
   if (!snap.exists) throw new Error("Diese Umfrage gibt es nicht (mehr).");
   const poll = toPoll(snap.id, snap.data() as Partial<PollDoc>);
 
-  await polls()
-    .doc(slug)
+  await pollDoc(slug)
     .update({
       open: patch.open,
       showResults: patch.showResults,
@@ -268,7 +280,7 @@ export async function deletePoll(slug: string): Promise<void> {
   const snap = await responses(slug).get();
   const batch = db().batch();
   snap.docs.forEach((d) => batch.delete(d.ref));
-  batch.delete(polls().doc(slug));
+  batch.delete(pollDoc(slug));
   await batch.commit();
 
   revalidateTag(POLLS_TAG);
@@ -293,7 +305,7 @@ export async function saveResponse(
   slug: string,
   input: ResponseInput,
 ): Promise<{ updated: boolean }> {
-  const snap = await polls().doc(slug).get();
+  const snap = await pollDoc(slug).get();
   if (!snap.exists) throw new Error("Diese Umfrage gibt es nicht (mehr).");
   const poll = toPoll(snap.id, snap.data() as Partial<PollDoc>);
   if (!poll.open) throw new Error("Diese Umfrage ist geschlossen.");
@@ -369,7 +381,7 @@ export interface SeedResult {
  * niemand zweimal abstimmen muss.
  */
 export async function seedTemplate(template: PollTemplate): Promise<SeedResult> {
-  const ref = polls().doc(template.slug);
+  const ref = pollDoc(template.slug);
   const existing = await ref.get();
   let created = false;
 
