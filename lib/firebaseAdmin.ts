@@ -54,6 +54,8 @@ export const Collections = {
   users: "users",
   /** Umfragen; Doc-ID ist der Slug aus dem Link. */
   polls: "polls",
+  /** Gruppen von Teilnehmern; steuern, wer welche Umfrage sieht. */
+  groups: "groups",
 } as const;
 
 /** Unter-Sammlung einer Umfrage mit den abgegebenen Antworten. */

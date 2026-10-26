@@ -40,6 +40,25 @@ export interface PollChoice {
 export type PollTheme = "weihnachten" | "neutral";
 
 /**
+ * Wer eine Umfrage sieht: alle Angemeldeten oder nur die Mitglieder
+ * bestimmter Gruppen. Organisatoren sehen immer alles.
+ */
+export type PollAudience = "all" | "groups";
+
+/**
+ * Eine Gruppe von Teilnehmern, z.B. „Abteilung" oder „Familie". Über Gruppen
+ * legt der Organisator fest, wer welche Umfrage sieht – so laufen mehrere
+ * Runden unabhängig voneinander.
+ */
+export interface GroupDoc {
+  id: string;
+  name: string;
+  /** Benutzer-IDs der Mitglieder. */
+  memberIds: string[];
+  createdAt: number;
+}
+
+/**
  * Eine Umfrage. Die Dokument-ID ist der Slug und damit Teil des Links
  * (`/umfrage/<slug>`) – sie steht nach dem Anlegen fest.
  */
@@ -49,6 +68,13 @@ export interface PollDoc {
   /** Einleitungstext auf der öffentlichen Seite. */
   description: string;
   theme: PollTheme;
+  /** Sichtbarkeit; ältere Umfragen ohne Feld gelten als „alle". */
+  audience: PollAudience;
+  /**
+   * Gruppen, die die Umfrage sehen (nur bei `audience: "groups"`). Leer oder
+   * nur gelöschte Gruppen = nur die Organisatoren sehen sie – nie „alle".
+   */
+  groupIds: string[];
   /** Zur Wahl stehende Termine als `YYYY-MM-DD`, chronologisch. */
   dates: string[];
   /** Überschrift über den Optionen, z.B. „Wo soll's hingehen?". */

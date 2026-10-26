@@ -1,12 +1,20 @@
 import Link from "next/link";
 import { dateRangeLabel, formatDateLong } from "@/lib/polls";
+import { getCurrentUser } from "@/lib/auth";
+import { canSeePoll, listGroups } from "@/lib/groupStore";
 import { listPolls } from "@/lib/pollStore";
 
 export const dynamic = "force-dynamic";
 
 /** Öffentliche Startseite: was läuft gerade an Umfragen. */
 export default async function StartPage() {
-  const all = await listPolls();
+  const [polls, groups, user] = await Promise.all([
+    listPolls(),
+    listGroups(),
+    getCurrentUser(),
+  ]);
+  // Jeder sieht nur die Umfragen seiner Gruppen (plus die für alle).
+  const all = polls.filter(({ poll }) => canSeePoll(poll, user, groups));
   const open = all.filter((p) => p.poll.open);
   const done = all.filter((p) => !p.poll.open);
 

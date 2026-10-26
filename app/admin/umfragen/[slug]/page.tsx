@@ -14,6 +14,7 @@ import {
   tallyChoices,
   tallyDates,
 } from "@/lib/polls";
+import { listGroups } from "@/lib/groupStore";
 import { getPoll, getResponses } from "@/lib/pollStore";
 
 export const dynamic = "force-dynamic";
@@ -41,7 +42,10 @@ export default async function AdminPollPage({
   const poll = await getPoll(params.slug);
   if (!poll) notFound();
 
-  const responses = await getResponses(poll.id);
+  const [responses, groups] = await Promise.all([
+    getResponses(poll.id),
+    listGroups(),
+  ]);
   const declined = responses.filter((r) => r.declined).length;
   const best = rankDates(tallyDates(poll.dates, responses))[0];
   const topChoice = tallyChoices(poll.choices, responses)[0];
@@ -124,7 +128,7 @@ export default async function AdminPollPage({
       </div>
 
       {/* --- Steuerung --- */}
-      <PollSettingsForm poll={poll} />
+      <PollSettingsForm poll={poll} groups={groups} />
 
       {/* --- Auswertung --- */}
       <section className="space-y-4">

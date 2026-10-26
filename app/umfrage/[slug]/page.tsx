@@ -4,17 +4,32 @@ import { PollForm, type ResponseDraft } from "@/components/poll/PollForm";
 import { PollResults } from "@/components/poll/PollResults";
 import { Snowflakes } from "@/components/poll/Snowflakes";
 import { getCurrentUser } from "@/lib/auth";
+import { canSeePoll, listGroups } from "@/lib/groupStore";
 import { choiceById, choiceLabel, formatDateLong } from "@/lib/polls";
 import { getPoll, getResponses } from "@/lib/pollStore";
 
 export const dynamic = "force-dynamic";
+
+/**
+ * Die Umfrage, wenn der angemeldete Nutzer sie sehen darf – sonst null.
+ * Fremde Umfragen sind „nicht gefunden", damit sich nicht einmal ihr Titel
+ * über einen erratenen Link verrät.
+ */
+async function visiblePoll(slug: string) {
+  const [poll, user, groups] = await Promise.all([
+    getPoll(slug),
+    getCurrentUser(),
+    listGroups(),
+  ]);
+  return { poll: poll && canSeePoll(poll, user, groups) ? poll : null, user };
+}
 
 export async function generateMetadata({
   params,
 }: {
   params: { slug: string };
 }): Promise<Metadata> {
-  const poll = await getPoll(params.slug);
+  const { poll } = await visiblePoll(params.slug);
   if (!poll) return { title: "Umfrage nicht gefunden · FF Entertainment" };
   return {
     title: `${poll.title} · FF Entertainment`,
@@ -29,13 +44,10 @@ export async function generateMetadata({
 }
 
 export default async function PollPage({ params }: { params: { slug: string } }) {
-  const poll = await getPoll(params.slug);
+  const { poll, user } = await visiblePoll(params.slug);
   if (!poll) notFound();
 
-  const [responses, user] = await Promise.all([
-    getResponses(poll.id),
-    getCurrentUser(),
-  ]);
+  const responses = await getResponses(poll.id);
   const declined = responses.filter((r) => r.declined).length;
   const festive = poll.theme === "weihnachten";
   const finalChoice = choiceById(poll, poll.finalChoice);

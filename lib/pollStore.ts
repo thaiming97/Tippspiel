@@ -16,7 +16,14 @@ import {
   slugify,
   type PollTemplate,
 } from "./polls";
-import type { PollChoice, PollDoc, PollTheme, ResponseDoc, Vote } from "./types";
+import type {
+  PollAudience,
+  PollChoice,
+  PollDoc,
+  PollTheme,
+  ResponseDoc,
+  Vote,
+} from "./types";
 
 /**
  * Datenzugriff der Umfragen.
@@ -58,6 +65,8 @@ function toPoll(id: string, data: Partial<PollDoc>): PollDoc {
     title: data.title ?? id,
     description: data.description ?? "",
     theme: (data.theme as PollTheme) ?? "neutral",
+    audience: data.audience === "groups" ? "groups" : "all",
+    groupIds: data.groupIds ?? [],
     dates: data.dates ?? [],
     choicesTitle: data.choicesTitle ?? "Auswahl",
     choices: data.choices ?? [],
@@ -148,6 +157,12 @@ export interface PollInput {
   choices: { name: string; hint: string }[];
 }
 
+/** Wer die Umfrage sieht – Gruppen-IDs sind bereits gegen die Datenbank geprüft. */
+export interface AudienceInput {
+  audience: PollAudience;
+  groupIds: string[];
+}
+
 /** Baut die Optionen mit eindeutigen IDs aus den Eingaben. */
 function buildChoices(input: PollInput["choices"]): PollChoice[] {
   const used = new Set<string>();
@@ -177,7 +192,10 @@ function checkInput(input: PollInput): void {
 }
 
 /** Legt eine Umfrage an und gibt ihren Slug zurück. */
-export async function createPoll(input: PollInput): Promise<string> {
+export async function createPoll(
+  input: PollInput,
+  visibility: AudienceInput = { audience: "all", groupIds: [] },
+): Promise<string> {
   checkInput(input);
 
   // Etwas Luft lassen: bei Dopplung wird "-2", "-3" … angehängt, und der
@@ -194,6 +212,8 @@ export async function createPoll(input: PollInput): Promise<string> {
     title: input.title.trim(),
     description: input.description.trim().slice(0, MAX_DESCRIPTION_LENGTH),
     theme: input.theme,
+    audience: visibility.audience,
+    groupIds: visibility.audience === "groups" ? visibility.groupIds : [],
     dates: cleanDates(input.dates),
     choicesTitle: input.choicesTitle.trim().slice(0, MAX_TITLE_LENGTH) || "Auswahl",
     choices: buildChoices(input.choices),
@@ -246,7 +266,7 @@ export async function updatePoll(slug: string, input: PollInput): Promise<void> 
 /** Schaltet Zustand und Festlegungen einer Umfrage. */
 export async function updatePollSettings(
   slug: string,
-  patch: {
+  patch: AudienceInput & {
     open: boolean;
     showResults: boolean;
     finalDate: string | null;
@@ -262,6 +282,8 @@ export async function updatePollSettings(
     .update({
       open: patch.open,
       showResults: patch.showResults,
+      audience: patch.audience,
+      groupIds: patch.audience === "groups" ? patch.groupIds : [],
       // Nur übernehmen, was in dieser Umfrage überhaupt zur Wahl steht.
       finalDate:
         patch.finalDate && poll.dates.includes(patch.finalDate) ? patch.finalDate : null,
@@ -407,6 +429,8 @@ export async function seedTemplate(template: PollTemplate): Promise<SeedResult> 
       title: template.title,
       description: template.description,
       theme: template.theme,
+      audience: "all",
+      groupIds: [],
       dates: cleanDates(template.dates),
       choicesTitle: template.choicesTitle,
       choices: template.choices,

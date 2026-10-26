@@ -13,7 +13,8 @@ import {
   cleanDates,
   formatDate,
 } from "@/lib/polls";
-import type { PollDoc } from "@/lib/types";
+import type { GroupDoc, PollDoc } from "@/lib/types";
+import { AudienceFields } from "./AudienceFields";
 
 interface ChoiceRow {
   name: string;
@@ -48,7 +49,14 @@ function SubmitButton({ label }: { label: string }) {
  * bewusst kein `name`: Sonst würden entfernte Termine beim Speichern wieder
  * auftauchen.
  */
-export function PollEditor({ poll }: { poll?: PollDoc }) {
+export function PollEditor({
+  poll,
+  groups = [],
+}: {
+  poll?: PollDoc;
+  /** Nur beim Anlegen – danach steht die Sichtbarkeit in den Einstellungen. */
+  groups?: GroupDoc[];
+}) {
   const editing = Boolean(poll);
   const [state, formAction] = useFormState(
     editing ? updatePollAction : createPollAction,
@@ -146,6 +154,7 @@ export function PollEditor({ poll }: { poll?: PollDoc }) {
             <option value="weihnachten">Weihnachtlich (Schnee &amp; Tanne)</option>
           </select>
         </div>
+        {!editing && <AudienceFields groups={groups} />}
       </div>
 
       {/* --- Termine --- */}
