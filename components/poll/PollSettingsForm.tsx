@@ -3,7 +3,8 @@
 import { useFormState, useFormStatus } from "react-dom";
 import { updateSettingsAction } from "@/app/actions/polls";
 import { choiceLabel, formatDateLong } from "@/lib/polls";
-import type { PollDoc } from "@/lib/types";
+import type { GroupDoc, PollDoc } from "@/lib/types";
+import { AudienceFields } from "./AudienceFields";
 
 function Btn() {
   const { pending } = useFormStatus();
@@ -47,7 +48,13 @@ function Toggle({
 }
 
 /** Zustand und Festlegungen einer Umfrage – nur im Admin-Bereich. */
-export function PollSettingsForm({ poll }: { poll: PollDoc }) {
+export function PollSettingsForm({
+  poll,
+  groups,
+}: {
+  poll: PollDoc;
+  groups: GroupDoc[];
+}) {
   const [state, formAction] = useFormState(updateSettingsAction, undefined);
 
   return (
@@ -69,6 +76,12 @@ export function PollSettingsForm({ poll }: { poll: PollDoc }) {
           hint="Aus: nur du siehst die Antworten."
         />
       </div>
+
+      <AudienceFields
+        groups={groups}
+        audience={poll.audience}
+        groupIds={poll.groupIds}
+      />
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div>

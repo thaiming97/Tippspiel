@@ -3,6 +3,7 @@ import { requireAdminPage } from "@/lib/auth";
 import { CopyLinkButton } from "@/components/poll/CopyLinkButton";
 import { seedWeihnachtsessenAction } from "@/app/actions/polls";
 import { WEIHNACHTSESSEN, dateRangeLabel, dayMonth } from "@/lib/polls";
+import { listGroups } from "@/lib/groupStore";
 import { listPolls } from "@/lib/pollStore";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +12,8 @@ export const dynamic = "force-dynamic";
 export default async function AdminHome() {
   // Nicht nur auf die Middleware verlassen (siehe requireAdminPage).
   await requireAdminPage();
-  const polls = await listPolls();
+  const [polls, groups] = await Promise.all([listPolls(), listGroups()]);
+  const groupName = new Map(groups.map((g) => [g.id, g.name]));
   // Vorlage nur anbieten, solange es die Umfrage noch nicht gibt.
   const showTemplate = !polls.some(({ poll }) => poll.id === WEIHNACHTSESSEN.slug);
 
@@ -29,6 +31,9 @@ export default async function AdminHome() {
         <div className="flex flex-wrap gap-2">
           <Link href="/admin/users" className="btn-ghost">
             Organisatoren
+          </Link>
+          <Link href="/admin/gruppen" className="btn-ghost">
+            Gruppen
           </Link>
           <Link
             href="/admin/umfragen/neu"
@@ -110,6 +115,15 @@ export default async function AdminHome() {
                       {poll.finalDate && (
                         <span className="chip bg-ff-orange/10 text-ff-orange">
                           Termin steht
+                        </span>
+                      )}
+                      {poll.audience === "groups" && (
+                        <span className="chip normal-case tracking-normal">
+                          👥{" "}
+                          {poll.groupIds
+                            .map((id) => groupName.get(id))
+                            .filter(Boolean)
+                            .join(", ") || "nur Organisatoren"}
                         </span>
                       )}
                     </div>

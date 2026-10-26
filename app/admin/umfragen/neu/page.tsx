@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { PollEditor } from "@/components/poll/PollEditor";
 import { requireAdminPage } from "@/lib/auth";
+import { listGroups } from "@/lib/groupStore";
 
 export const dynamic = "force-dynamic";
 
 export default async function NeueUmfragePage() {
   // Nicht nur auf die Middleware verlassen (siehe requireAdminPage).
   await requireAdminPage();
+  const groups = await listGroups();
 
   return (
     <div className="space-y-5">
@@ -19,10 +21,10 @@ export default async function NeueUmfragePage() {
         </h1>
         <p className="text-sm text-ink-soft">
           Titel, Termine und Auswahl bestimmst du selbst – abstimmen kann
-          danach jeder mit einem Konto.
+          danach jeder mit einem Konto – oder nur die Gruppen, die du freigibst.
         </p>
       </header>
-      <PollEditor />
+      <PollEditor groups={groups} />
     </div>
   );
 }

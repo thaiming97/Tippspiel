@@ -29,6 +29,14 @@ Organisator an oder man registriert sich selbst.
   endgültigen Termin + Option + Hinweis festlegen (erscheint als Banner auf der
   öffentlichen Seite), einzelne Antworten oder ganze Umfragen löschen.
 - **Optik je Umfrage**: „Normal" oder „Weihnachtlich" (Schnee & Tanne).
+- **Gruppen**: Unter `/admin/gruppen` legt der Organisator Gruppen an
+  (z.B. „Abteilung", „Familie") und wählt ihre Mitglieder. In den
+  Einstellungen jeder Umfrage steht „Wer sieht diese Umfrage?": **Alle** oder
+  **nur bestimmte Gruppen**. Wer nicht dazugehört, sieht die Umfrage weder auf
+  der Startseite noch über den Link (dort heißt es „nicht gefunden"). So
+  laufen mehrere Runden unabhängig voneinander. Organisatoren sehen immer
+  alles. Wird eine Gruppe gelöscht, wird eine Umfrage nie stillschweigend für
+  alle geöffnet; sie sehen dann nur noch die Organisatoren.
 
 ## Seiten
 
@@ -41,6 +49,7 @@ Organisator an oder man registriert sich selbst.
 | `/admin` | Umfragen anlegen und verwalten | nur Organisatoren |
 | `/admin/umfragen/<slug>` | auswerten, steuern, bearbeiten | nur Organisatoren |
 | `/admin/users` | Konten anlegen, Passwörter zurücksetzen | nur Organisatoren |
+| `/admin/gruppen` | Gruppen und ihre Mitglieder verwalten | nur Organisatoren |
 
 Ein geteilter Umfrage-Link führt zunächst auf die Anmeldung und danach
 automatisch auf die Umfrage weiter (`?weiter=…`).
@@ -61,7 +70,9 @@ Datenmodell: `polls/<slug>` je Umfrage, darunter die Unter-Sammlung
 `responses/<Benutzer-ID>` mit den Antworten – die Benutzer-ID als Dokument-ID
 sorgt dafür, dass jeder genau eine Antwort je Umfrage hat und nur seine
 eigene ändern kann. `users` enthält alle Konten (Rolle `user` = abstimmen,
-`admin` = zusätzlich verwalten).
+`admin` = zusätzlich verwalten). `groups/<id>` hält Name und Mitglieder
+(`memberIds`) einer Gruppe; eine Umfrage trägt `audience` (`all` oder
+`groups`) und `groupIds`.
 
 ## Einrichtung
 

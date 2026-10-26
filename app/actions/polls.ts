@@ -9,6 +9,7 @@ import {
   buildDates,
   cleanDates,
 } from "@/lib/polls";
+import { canSeePoll, knownGroupIds, listGroups } from "@/lib/groupStore";
 import {
   createPoll,
   deletePoll,
@@ -18,6 +19,7 @@ import {
   seedTemplate,
   updatePoll,
   updatePollSettings,
+  type AudienceInput,
   type PollInput,
 } from "@/lib/pollStore";
 import type { PollTheme, Vote } from "@/lib/types";
@@ -51,7 +53,11 @@ export async function submitResponseAction(
 
   const slug = String(formData.get("slug") ?? "");
   const poll = await getPoll(slug);
-  if (!poll) return { error: "Diese Umfrage gibt es nicht (mehr)." };
+  // Wer die Umfrage nicht sehen darf, bekommt dieselbe Antwort wie bei einer
+  // unbekannten – sonst ließe sich ihre Existenz erraten.
+  if (!poll || !canSeePoll(poll, user, await listGroups())) {
+    return { error: "Diese Umfrage gibt es nicht (mehr)." };
+  }
   if (!poll.open) return { error: "Diese Umfrage ist geschlossen." };
 
   const dates: Record<string, Exclude<Vote, "no">> = {};
@@ -110,6 +116,18 @@ function readPollInput(formData: FormData): PollInput {
   };
 }
 
+/** Liest „Wer sieht die Umfrage?" – nur Gruppen, die es wirklich gibt. */
+async function readAudience(formData: FormData): Promise<AudienceInput> {
+  const audience = formData.get("audience") === "groups" ? "groups" : "all";
+  return {
+    audience,
+    groupIds:
+      audience === "groups"
+        ? await knownGroupIds(formData.getAll("groupId").map(String))
+        : [],
+  };
+}
+
 export type PollFormState = { error?: string; ok?: string } | undefined;
 
 /** Legt eine neue Umfrage an und springt danach in ihre Verwaltung. */
@@ -125,7 +143,7 @@ export async function createPollAction(
 
   let slug: string;
   try {
-    slug = await createPoll(readPollInput(formData));
+    slug = await createPoll(readPollInput(formData), await readAudience(formData));
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Anlegen fehlgeschlagen." };
   }
@@ -170,6 +188,7 @@ export async function updateSettingsAction(
   const slug = String(formData.get("slug") ?? "");
   try {
     await updatePollSettings(slug, {
+      ...(await readAudience(formData)),
       open: formData.get("open") === "on",
       showResults: formData.get("showResults") === "on",
       finalDate: String(formData.get("finalDate") ?? "") || null,
