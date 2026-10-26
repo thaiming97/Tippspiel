@@ -137,7 +137,7 @@ export default async function AdminHome() {
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <CopyLinkButton path={`/umfrage/${poll.id}`} />
+                    <CopyLinkButton path={`/umfrage/${poll.id}`} title={poll.title} />
                     <Link
                       href={`/admin/umfragen/${poll.id}`}
                       className="btn-ghost whitespace-nowrap"

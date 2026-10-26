@@ -67,7 +67,7 @@ export default async function AdminPollPage({
             <p className="font-mono text-xs text-ink/40">/umfrage/{poll.id}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <CopyLinkButton path={`/umfrage/${poll.id}`} />
+            <CopyLinkButton path={`/umfrage/${poll.id}`} title={poll.title} />
             <Link
               href={`/umfrage/${poll.id}`}
               className="btn-ghost"

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth";
 import { createUser, deleteUser, resetUserPassword } from "@/lib/admin";
+import { START_PASSWORD } from "@/lib/username";
 import {
   createGroup,
   deleteGroup,
@@ -25,7 +26,7 @@ export async function createUserAction(
     const role = formData.get("role") === "admin" ? "admin" : "user";
     let startPassword = String(formData.get("startPassword") ?? "").trim();
     if (!name.trim()) return { error: "Name ist Pflicht." };
-    if (!startPassword) startPassword = "start123";
+    if (!startPassword) startPassword = START_PASSWORD;
 
     await createUser({ email, name, startPassword, role });
     revalidatePath("/admin/users");
@@ -47,7 +48,7 @@ export async function resetPasswordAction(
     const userId = String(formData.get("userId") ?? "");
     // Vorgabe „start123": vorhersagbar für die Weitergabe, muss beim
     // nächsten Login geändert werden. Ein eigenes Passwort ist möglich.
-    const startPassword = String(formData.get("startPassword") ?? "").trim() || "start123";
+    const startPassword = String(formData.get("startPassword") ?? "").trim() || START_PASSWORD;
     await resetUserPassword(userId, startPassword);
     revalidatePath("/admin/users");
     return { ok: "Passwort zurückgesetzt.", password: startPassword };
